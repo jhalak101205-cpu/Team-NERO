@@ -1,4 +1,4 @@
-# 🇮🇳 BhuManthan (भू-मंथन)
+# 🇮🇳 BhumiNexus 
 ### National Digital Platform for Research, Policy Innovation & Evidence-Based Land Governance
 
 [![Smart India Hackathon 2026](https://img.shields.io/badge/SIH-2026-orange.svg)](https://sih.gov.in/)
@@ -20,7 +20,7 @@
 India has vast volumes of land administration data — legacy cadastral maps, spatial datasets, satellite imagery, and land records under DILRMP. However, this wealth of data remains trapped in departmental silos. There is virtually no centralized, collaborative platform for researchers, policy-makers, and district administrators to evaluate land policy outcomes, predict bottlenecks, or conduct applied spatial research.
 
 ### 💡 Our Solution
-**BhuManthan** is a unified knowledge-to-policy engine. It bridges raw land governance data with actionable policy decisions through:
+**BhumiNexus** is a unified knowledge-to-policy engine. It bridges raw land governance data with actionable policy decisions through:
 1. **AI Semantic Search (RAG):** Context-aware discovery across land policies, case studies, and legal documents.
 2. **GIS Correlation Layers:** Visualizing district-wise correlations between record digitization and land dispute decline.
 3. **Evidence-Based Policy Simulator:** Machine-learning-powered "what-if" scenario analysis to forecast reform impacts before rollout.
