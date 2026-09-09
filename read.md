@@ -34,7 +34,7 @@ Rather than building an isolated application, our platform acts as the **analyti
 
 ```mermaid
 flowchart LR
-    A["SIH26018\nLegacy Land Record OCR & Digitization"] -->|Clean Structured Records| D["BhuManthan (SIH26019)\nNational Research & Policy Engine"]
+    A["SIH26018\nLegacy Land Record OCR & Digitization"] -->|Clean Structured Records| D["BhumiNexus (SIH26019)\nNational Research & Policy Engine"]
     B["SIH26016\nLand Acquisition & R&R Tracker"] -->|Real-time Acquisition Data| D
     C["SIH26015\nSRISHTI-DRISHTI Satellite Imagery"] -->|Geospatial & Watershed Layers| D
     D --> E["Evidence-Based Policy Decisions & Simulators"]
