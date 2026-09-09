@@ -1,0 +1,19 @@
+PUNJAB LAND GOVERNANCE & DISPUTE DELAY ANALYSIS REPORT (2024)
+Department of Revenue & Land Resources Policy Study
+
+1. EXECUTIVE SUMMARY & LITIGATION TIMELINES
+Land and property litigation accounts for over 65% of all civil disputes pending in Punjab revenue courts. On average, a rural land dispute takes 14 to 18 years to reach final adjudication through the Revenue Courts (Tehsildar -> Sub-Divisional Magistrate -> District Collector -> Financial Commissioner).
+
+2. PRIMARY CAUSES OF LONG LAND DISPUTES IN PUNJAB
+A. Legacy Revenue Maps (Musavis): Most village boundary maps (Musavis) date back to the 1950-1960 consolidation (Chakbandi) era. Paper maps are torn, stretched, or faded, causing boundary overlaps during physical measurement (Nishandehi).
+B. Partition of Holdings (Khata Partition): Joint ownership of land (Joint Khatas) without physical partition leads to co-sharers selling specific plots without legal division. This creates conflict when one co-sharer attempts construction on prime road-front land.
+C. Delayed Mutation (Jamabandi Entry): Delays in updating mutation entries following inheritance or sale deeds lead to double-selling of land parcels.
+D. Non-Integration of Spatial and Text Data: While textual records (Jamabandi) are 58% digitized across Punjab districts like Ludhiana, Amritsar, and Patiala, spatial GIS map integration remains at only 32%.
+
+3. IMPACT OF DILRMP DIGITIZATION IN PUNJAB
+In pilot districts where DILRMP completed 100% vector digitization of cadastral maps (e.g., Jalandhar pilot blocks), boundary measurement disputes decreased by 38% within 24 months. Fast-tracking digital Nishandehi using CORS (Continuously Operating Reference Stations) network reduced measurement turnaround time from 45 days to 48 hours.
+
+4. POLICY RECOMMENDATIONS FOR PUNJAB LAND REFORMS
+- Mandatory digital partition of joint Khatas before property registration.
+- Deployment of high-resolution Drone Cadastral Surveys to replace manual Gunter Chain measurements.
+- Setting up dedicated Land Dispute Resolution Benches under the Financial Commissioner Revenue with a 180-day strict verdict mandate.
