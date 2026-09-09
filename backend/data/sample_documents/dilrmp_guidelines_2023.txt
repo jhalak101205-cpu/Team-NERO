@@ -1,0 +1,20 @@
+DIGITAL INDIA LAND RECORDS MODERNIZATION PROGRAMME (DILRMP) IMPLEMENTATION GUIDELINES (2023)
+Department of Land Resources (DoLR), Ministry of Rural Development
+
+1. CORE COMPONENTS OF DILRMP
+The flagship DILRMP scheme aims to build a modern, comprehensive, and transparent land records management system in India based on four pillars:
+Component 1: Computerization of Record of Rights (RoR) text data.
+Component 2: Digitization of Cadastral Maps and spatial-textual integration (GIS mapping).
+Component 3: Modernization of Land Registration Offices (SROs) and auto-mutation.
+Component 4: Setup of High-Accuracy Survey Infrastructure using DGPS, CORS networks, and LiDAR/Drone surveying.
+
+2. QUANTITATIVE IMPACT ON LAND DISPUTE REDUCTION
+National empirical studies conducted across 120 pilot districts reveal:
+- Districts with >80% RoR-spatial integration witnessed a 42% reduction in fresh land dispute filings in revenue courts within 2 years.
+- Auto-mutation on land sale registration reduced illegal double-titling fraud by 89%.
+- The average time taken to obtain a certified copy of land record dropped from 14 days to under 3 minutes via online portals (e.g. Mahabhulekh, AnyRoR, Bhoomi, Jamabandi).
+
+3. CHALLENGES IN STATE IMPLEMENTATION
+- Spatial-Text Discrepancy: Discrepancy between textual area mentioned in RoR (e.g., 2.5 Acres) and actual polygon area measured on satellite map.
+- Inter-Departmental Silos: Revenue, Registration, and Survey departments using isolated databases without real-time API syncing.
+- Capacity & Training: Lack of trained surveyor manpower at the Taluka/Tehsil level for modern total station and drone tools.
