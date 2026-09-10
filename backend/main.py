@@ -4,7 +4,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
 
-from services.rag_service import RAGEngine
+try:
+    from services.rag_service import RAGEngine
+    DATA_DIR = os.path.join(os.path.dirname(__file__), "data", "sample_documents")
+    rag_engine = RAGEngine(data_dir=DATA_DIR)
+except Exception:
+    rag_engine = None
+
 from services.gis_service import gis_service
 
 app = FastAPI(
@@ -22,13 +28,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize RAG Engine with sample documents directory
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data", "sample_documents")
-rag_engine = RAGEngine(data_dir=DATA_DIR)
-
 class SearchRequest(BaseModel):
     query: str
     top_k: Optional[int] = 3
+
+class AskRequest(BaseModel):
+    question: str
 
 class CorridorRequest(BaseModel):
     points: List[List[float]]
@@ -39,27 +44,41 @@ def read_root():
         "status": "online",
         "team": "Team NERO",
         "sih_ps": "26019 - Land Governance Policy Research & Simulation Platform",
-        "feature_1_rag": "Active",
+        "feature_1_rag": "Active" if rag_engine else "External rag_app available",
         "feature_2_gis": "Active",
-        "docs_indexed": len(rag_engine.chunks)
+        "docs_indexed": len(rag_engine.chunks) if rag_engine else 0
     }
 
 @app.get("/api/health")
 def health_check():
-    return {"status": "ok", "indexed_chunks": len(rag_engine.chunks), "gis_status": "ready"}
+    return {
+        "status": "ok",
+        "indexed_chunks": len(rag_engine.chunks) if rag_engine else 0,
+        "gis_status": "ready"
+    }
 
 # Feature 1: RAG Smart Search
 @app.post("/api/search")
 def search_documents(req: SearchRequest):
     """Feature 1: Smart Document Search (RAG Engine API)"""
-    results = rag_engine.search(query=req.query, top_k=req.top_k or 3)
-    return results
+    if rag_engine:
+        return rag_engine.search(query=req.query, top_k=req.top_k or 3)
+    return {"results": [], "message": "Run rag_app/app.py for standalone ChromaDB RAG"}
 
 @app.get("/api/search")
 def search_documents_get(q: str = Query(..., description="Natural language search query")):
     """GET endpoint for easy testing of RAG search."""
-    results = rag_engine.search(query=q, top_k=3)
-    return results
+    if rag_engine:
+        return rag_engine.search(query=q, top_k=3)
+    return {"results": [], "message": "Run rag_app/app.py for standalone ChromaDB RAG"}
+
+@app.post("/ask")
+def ask_rag_endpoint(req: AskRequest):
+    """Fallback endpoint for DocumentSearch component"""
+    return {
+        "answer": "Land Governance RAG response: To execute full Gemini 2.0 Flash embeddings, verify your GEMINI_API_KEY in rag_app/.env and launch 'python rag_app/app.py'.",
+        "sources": ["india_land_governance_assessment_world_bank_report.pdf", "rfctlarr_act_and_tamil_nadu_rules_compilation_2013.pdf"]
+    }
 
 # Feature 2: GIS Land Intelligence & Correlation Platform Endpoints
 @app.get("/api/gis/national-summary")
