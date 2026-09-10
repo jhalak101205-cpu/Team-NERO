@@ -1,0 +1,25 @@
+# Environment variables (contains secret API keys)
+.env
+*.env
+rag_app/.env
+
+# Python Virtual Environment
+venv/
+env/
+ENV/
+__pycache__/
+*.pyc
+
+# Node / React Dependencies & Build
+node_modules/
+dist/
+dist-ssr/
+*.log
+
+# Vector Database local persistence
+rag_app/chroma_db/
+chroma_db/
+
+# Temporary / OS files
+.DS_Store
+generate_pdfs.py
