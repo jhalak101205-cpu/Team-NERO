@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Navbar from './components/Navbar';
 import DocumentSearch from './components/DocumentSearch';
+import GISCorrelationMap from './components/GISCorrelationMap';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('search');
@@ -12,14 +13,7 @@ export default function App() {
       <main style={{ paddingBottom: '3rem' }}>
         {activeTab === 'search' && <DocumentSearch />}
 
-        {activeTab === 'map' && (
-          <div style={{ maxWidth: '1200px', margin: '3rem auto', padding: '0 1.5rem', textAlign: 'center' }}>
-            <div className="glass-panel" style={{ padding: '3rem' }}>
-              <h2 style={{ fontSize: '1.8rem', color: '#f8fafc', marginBottom: '1rem' }}>Feature 2: GIS Correlation Map</h2>
-              <p style={{ color: 'var(--text-muted)' }}>Ready to build in Step 2!</p>
-            </div>
-          </div>
-        )}
+        {activeTab === 'map' && <GISCorrelationMap />}
 
         {activeTab === 'chatbot' && (
           <div style={{ maxWidth: '1200px', margin: '3rem auto', padding: '0 1.5rem', textAlign: 'center' }}>

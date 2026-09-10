@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 
 from services.rag_service import RAGEngine
+from services.gis_service import gis_service
 
 app = FastAPI(
     title="Team NERO - Land Governance Policy & Simulation API",
@@ -12,7 +13,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Enable CORS for React frontend (localhost:5173 / localhost:3000)
+# Enable CORS for React frontend (localhost:5173 / localhost:5174 / localhost:3000)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -29,6 +30,9 @@ class SearchRequest(BaseModel):
     query: str
     top_k: Optional[int] = 3
 
+class CorridorRequest(BaseModel):
+    points: List[List[float]]
+
 @app.get("/")
 def read_root():
     return {
@@ -36,13 +40,15 @@ def read_root():
         "team": "Team NERO",
         "sih_ps": "26019 - Land Governance Policy Research & Simulation Platform",
         "feature_1_rag": "Active",
+        "feature_2_gis": "Active",
         "docs_indexed": len(rag_engine.chunks)
     }
 
 @app.get("/api/health")
 def health_check():
-    return {"status": "ok", "indexed_chunks": len(rag_engine.chunks)}
+    return {"status": "ok", "indexed_chunks": len(rag_engine.chunks), "gis_status": "ready"}
 
+# Feature 1: RAG Smart Search
 @app.post("/api/search")
 def search_documents(req: SearchRequest):
     """Feature 1: Smart Document Search (RAG Engine API)"""
@@ -55,6 +61,54 @@ def search_documents_get(q: str = Query(..., description="Natural language searc
     results = rag_engine.search(query=q, top_k=3)
     return results
 
+# Feature 2: GIS Land Intelligence & Correlation Platform Endpoints
+@app.get("/api/gis/national-summary")
+@app.get("/api/gis/summary")
+def get_gis_summary(
+    state: Optional[str] = Query(None, description="State ID"),
+    district: Optional[str] = Query(None, description="District ID")
+):
+    """Regional & National Land Cover & Modernization KPIs"""
+    return gis_service.get_summary(state_id=state, district_id=district)
+
+@app.get("/api/gis/temporal-trends")
+def get_gis_temporal_trends(
+    state: Optional[str] = Query(None, description="State ID (optional)"),
+    district: Optional[str] = Query(None, description="District ID (optional)")
+):
+    """Multi-Year Historical Trend Analysis (2005-06 to 2023-24) computed dynamically from raw dataset"""
+    return gis_service.get_temporal_trends(state_id=state, district_id=district)
+
+@app.post("/api/gis/sync")
+def post_gis_sync():
+    """Trigger pipeline sync with National Open Data Portal"""
+    return gis_service.sync_data_pipeline()
+
+@app.get("/api/gis/states")
+def get_gis_states():
+    """List of all Indian states with geospatial centroids and districts"""
+    return gis_service.get_states()
+
+@app.get("/api/gis/districts")
+def get_gis_districts(state: str = Query(..., description="State ID")):
+    """Districts list for selected state"""
+    return gis_service.get_districts_by_state(state_id=state)
+
+@app.get("/api/gis/geojson")
+def get_gis_geojson(
+    level: str = Query("national", description="Level: national, state, district"),
+    id: str = Query("all_india", description="Entity ID"),
+    category: Optional[str] = Query(None, description="Category filter (e.g. urban, rural_agri, forest, govt_land, disputed)")
+):
+    """Serve GeoJSON feature collection with land use polygons and property attributes"""
+    return gis_service.get_geojson(level=level, entity_id=id, category_filter=category)
+
+@app.post("/api/gis/corridor-analysis")
+def post_corridor_analysis(req: CorridorRequest):
+    """Analyze proposed highway/road corridor route for government land bank vs litigation conflict"""
+    return gis_service.analyze_corridor(points=req.points)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
