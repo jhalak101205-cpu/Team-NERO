@@ -1,110 +1,82 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Search, Sparkles, FileText, CheckCircle, BookOpen, AlertCircle, ArrowRight, Lightbulb } from 'lucide-react';
+import { Search, Sparkles, FileText, CheckCircle, AlertCircle, ArrowRight, Loader2 } from 'lucide-react';
 
 export default function DocumentSearch() {
-  const [query, setQuery] = useState('');
+  const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
-  const sampleQueries = [
+  const sampleQuestions = [
     "Why do land disputes take so long in Punjab?",
     "What are the rules for rural land acquisition compensation under RFCTLARR 2013?",
     "How does land record digitization reduce litigation according to DILRMP guidelines?",
     "What is the impact of joint Khata partition on boundary disputes?"
   ];
 
-  const handleSearch = async (searchQuery) => {
-    const q = searchQuery || query;
+  const handleAskQuestion = async (selectedQuestion) => {
+    const q = selectedQuestion || question;
     if (!q.trim()) return;
 
     setLoading(true);
     setError(null);
+    setResult(null);
 
     try {
-      // Call FastAPI backend RAG API endpoint
-      const response = await axios.post('http://localhost:8000/api/search', {
-        query: q,
-        top_k: 3
+      // Send real POST request to FastAPI backend endpoint
+      const response = await axios.post('http://localhost:8000/ask', {
+        question: q
+      }, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 25000
       });
-      setResult(response.data);
+
+      if (response.data) {
+        setResult(response.data);
+      }
     } catch (err) {
-      console.warn("Backend API unavailable, using high-precision local RAG simulation:", err);
-      // Fallback RAG simulation if backend API is connecting
-      simulateRAGSearch(q);
+      console.error("RAG Backend API error:", err);
+      let errorMsg = "Unable to connect to backend server at http://localhost:8000. Ensure 'python rag_app/app.py' is running.";
+      if (err.response && err.response.data && err.response.data.detail) {
+        errorMsg = err.response.data.detail;
+      }
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
-  const simulateRAGSearch = (q) => {
-    let mockResult = {
-      query: q,
-      synthesized_answer: `Based on legal and policy research in **Punjab Land Governance & Dispute Delay Analysis Report (2024)** (Litigation Timelines):\n\n> "Land and property litigation accounts for over 65% of all civil disputes pending in Punjab revenue courts. On average, a rural land dispute takes 14 to 18 years to reach final adjudication through Revenue Courts."\n\n**Key Finding:** Primary drivers of dispute delays include un-updated legacy village maps (Musavis from 1950s), joint ownership without physical partition (Khata Partition), and delayed spatial GIS map integration (text is 58% digitized, but spatial integration is only 32%). Fast-tracking digital surveys and drone cadastral mapping drops boundary measurement turnaround time from 45 days to 48 hours.`,
-      sources: [
-        {
-          document: "Punjab Land Governance Report 2024",
-          filename: "punjab_land_disputes_2024.txt",
-          section: "Section 2: Primary Causes of Dispute Delays",
-          snippet: "Legacy Revenue Maps (Musavis): Most village boundary maps date back to the 1950-1960 consolidation era. Paper maps are torn or faded, causing boundary overlaps during physical measurement (Nishandehi). Joint Khatas without partition lead to co-sharers selling prime road-front land without legal division.",
-          relevance_score: 98.4
-        },
-        {
-          document: "DILRMP Implementation Guidelines 2023",
-          filename: "dilrmp_guidelines_2023.txt",
-          section: "Section 2: Quantitative Impact",
-          snippet: "Districts with >80% RoR-spatial integration witnessed a 42% reduction in fresh land dispute filings in revenue courts within 2 years. Auto-mutation on sale registration reduced double-titling fraud by 89%.",
-          relevance_score: 91.2
-        },
-        {
-          document: "RFCTLARR Act Summary 2013",
-          filename: "rfctlarr_act_summary_2013.txt",
-          section: "Section 4: Compensatory Rates",
-          snippet: "Rural land compensation is calculated as 2x to 4x prevailing market value plus 100% Solatium. Compensation awards must be deposited within 12 months to prevent acquisition invalidation.",
-          relevance_score: 82.7
-        }
-      ]
-    };
-
-    if (q.toLowerCase().includes("rfctlarr") || q.toLowerCase().includes("compensation")) {
-      mockResult.synthesized_answer = `Based on legal review of **RFCTLARR Act 2013** (Compensatory Rates & SIA Rules):\n\n> "Compensation for rural land is calculated as 2x to 4x market value plus a 100% Solatium bonus. Mandatory Social Impact Assessment (SIA) must be completed before acquisition notification."\n\n**Key Finding:** Compensation awards must be deposited within 12 months. Consent of 70% landowners is required for PPP projects, and 80% for private projects.`;
-    }
-
-    setResult(mockResult);
-  };
-
   return (
-    <div style={{ maxWidth: '1200px', margin: '2rem auto', padding: '0 1.5rem' }}>
+    <div style={{ maxWidth: '1100px', margin: '2rem auto', padding: '0 1.5rem' }}>
       {/* Header Banner */}
       <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem', borderLeft: '4px solid var(--accent-indigo)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
           <div style={{ background: 'rgba(99, 102, 241, 0.2)', padding: '0.5rem', borderRadius: '10px', display: 'flex' }}>
             <Sparkles size={22} color="#818cf8" />
           </div>
-          <h2 style={{ fontSize: '1.6rem', color: '#f8fafc' }}>Feature 1: RAG Smart Document Search</h2>
+          <h2 style={{ fontSize: '1.6rem', color: '#f8fafc' }}>RAG Semantic Document Search</h2>
         </div>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '850px', lineHeight: 1.6 }}>
-          Understand legal & policy papers using natural language. Converts policy PDFs and Land Acts into vector embeddings with ChromaDB, retrieving accurate, evidence-backed answers instead of generic keyword matching.
+          Powered by ChromaDB vector storage, local SentenceTransformers embeddings, and Google Gemini API (gemini-2.0-flash). Answers are strictly grounded in indexed land policy documents.
         </p>
 
-        {/* Search Input Box */}
-        <div style={{ marginTop: '1.5rem', position: 'relative' }}>
+        {/* Input & Semantic Search Button */}
+        <div style={{ marginTop: '1.5rem' }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
             background: 'rgba(15, 23, 42, 0.8)',
             border: '1px solid var(--border-hover)',
             borderRadius: '14px',
-            padding: '0.5rem 0.75rem 0.5rem 1.25rem',
-            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.3)'
+            padding: '0.5rem 0.75rem 0.5rem 1.25rem'
           }}>
             <Search size={22} color="#94a3b8" style={{ marginRight: '0.75rem' }} />
             <input
               type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAskQuestion()}
               placeholder="Ask any policy question e.g. 'Why do land disputes take so long in Punjab?'"
               style={{
                 flex: 1,
@@ -117,12 +89,15 @@ export default function DocumentSearch() {
               }}
             />
             <button
-              onClick={() => handleSearch()}
-              disabled={loading}
+              onClick={() => handleAskQuestion()}
+              disabled={loading || !question.trim()}
               className="btn-primary"
             >
               {loading ? (
-                <span>Searching Vector DB...</span>
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  <span>Querying RAG & Gemini...</span>
+                </>
               ) : (
                 <>
                   <span>Semantic Search</span>
@@ -133,17 +108,15 @@ export default function DocumentSearch() {
           </div>
         </div>
 
-        {/* Quick Sample Queries */}
+        {/* Quick Sample Questions */}
         <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-            <Lightbulb size={14} color="#f59e0b" /> Try sample queries:
-          </span>
-          {sampleQueries.map((sq, idx) => (
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Try sample question:</span>
+          {sampleQuestions.map((sq, idx) => (
             <button
               key={idx}
               onClick={() => {
-                setQuery(sq);
-                handleSearch(sq);
+                setQuestion(sq);
+                handleAskQuestion(sq);
               }}
               className="btn-chip"
             >
@@ -153,60 +126,58 @@ export default function DocumentSearch() {
         </div>
       </div>
 
-      {/* Results View */}
+      {/* Error Alert Box */}
+      {error && (
+        <div className="animate-fade-in" style={{
+          padding: '1.25rem',
+          borderRadius: '12px',
+          background: 'rgba(244, 63, 94, 0.12)',
+          border: '1px solid rgba(244, 63, 94, 0.4)',
+          marginBottom: '1.5rem',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '0.75rem'
+        }}>
+          <AlertCircle size={22} color="#f43f5e" style={{ flexShrink: 0, marginTop: '2px' }} />
+          <div>
+            <h4 style={{ color: '#f43f5e', fontSize: '1rem', marginBottom: '0.35rem' }}>Backend Connection / RAG Error</h4>
+            <p style={{ color: '#fecdd3', fontSize: '0.9rem', lineHeight: 1.5 }}>{error}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Real Answer View */}
       {result && (
-        <div className="animate-fade-in" style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '1.5rem' }}>
-          {/* Synthesized Answer Column */}
-          <div className="glass-panel" style={{ padding: '1.75rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border-color)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <CheckCircle size={20} color="#10b981" />
-                <h3 style={{ fontSize: '1.2rem', color: '#f8fafc' }}>Synthesized Policy Answer</h3>
-              </div>
-              <span className="badge badge-emerald">Evidence-Backed</span>
+        <div className="animate-fade-in glass-panel" style={{ padding: '2rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border-color)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <CheckCircle size={22} color="#10b981" />
+              <h3 style={{ fontSize: '1.25rem', color: '#f8fafc' }}>Grounded Gemini RAG Answer</h3>
             </div>
-
-            <div style={{ fontSize: '0.98rem', lineHeight: 1.7, color: '#e2e8f0', whiteSpace: 'pre-line' }}>
-              {result.synthesized_answer}
-            </div>
-
-            <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(99, 102, 241, 0.08)', borderRadius: '12px', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
-              <p style={{ fontSize: '0.82rem', color: '#a5b4fc', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <BookOpen size={16} /> Data Vector Index: Ingested DILRMP 2023 Guidelines, Punjab Revenue Reports, & RFCTLARR Act 2013.
-              </p>
-            </div>
+            <span className="badge badge-emerald">Gemini 2.0 Flash</span>
           </div>
 
-          {/* Retrieved Source Chunks Column */}
-          <div className="glass-panel" style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.05rem', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <FileText size={18} color="#06b6d4" />
-                Matching Sources ({result.sources.length})
-              </h3>
-            </div>
+          {/* Answer Text */}
+          <div style={{ fontSize: '1rem', lineHeight: 1.7, color: '#e2e8f0', whiteSpace: 'pre-line', marginBottom: '1.75rem' }}>
+            {result.answer}
+          </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {result.sources.map((src, i) => (
-                <div key={i} className="glass-card" style={{ padding: '1rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <span className="badge badge-cyan" style={{ fontSize: '0.7rem' }}>
-                      {src.filename}
-                    </span>
-                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#34d399' }}>
-                      {src.relevance_score}% Match
-                    </span>
-                  </div>
-
-                  <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f1f5f9', marginBottom: '0.35rem' }}>
-                    {src.section}
-                  </p>
-
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                    "{src.snippet}"
-                  </p>
-                </div>
-              ))}
+          {/* Sources List */}
+          <div style={{ paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
+            <h4 style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <FileText size={16} color="#06b6d4" />
+              Source Documents Used ({result.sources ? result.sources.length : 0})
+            </h4>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {result.sources && result.sources.length > 0 ? (
+                result.sources.map((src, i) => (
+                  <span key={i} className="badge badge-cyan" style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}>
+                    📄 {src}
+                  </span>
+                ))
+              ) : (
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>No document sources retrieved</span>
+              )}
             </div>
           </div>
         </div>
