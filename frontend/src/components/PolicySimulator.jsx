@@ -31,10 +31,21 @@ import {
   Sparkles, 
   Printer, 
   RefreshCcw,
-  CheckCircle2
+  Sun,
+  Layers,
+  Settings,
+  Globe
 } from 'lucide-react';
 
 export default function PolicySimulator() {
+  // Domain State: 'highway', 'solar_park', 'industrial_corridor', 'agri_canal', 'urban_lps'
+  const [selectedDomain, setSelectedDomain] = useState('highway');
+  const [domains, setDomains] = useState([]);
+
+  // Custom Project Inputs
+  const [customBudgetCr, setCustomBudgetCr] = useState('');
+  const [customLandHa, setCustomLandHa] = useState('');
+
   // Slider Input States
   const [ulpinPct, setUlpinPct] = useState(68.2);
   const [vectorPct, setVectorPct] = useState(76.5);
@@ -52,7 +63,7 @@ export default function PolicySimulator() {
   const [loading, setLoading] = useState(true);
   const [activeScenarioId, setActiveScenarioId] = useState(null);
 
-  // Fetch preset scenarios & initial baseline prediction
+  // Fetch domains & initial data
   useEffect(() => {
     fetchInitialData();
   }, []);
@@ -60,10 +71,15 @@ export default function PolicySimulator() {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      const scenariosRes = await axios.get('http://localhost:8000/api/simulator/scenarios').catch(() => ({ data: [] }));
-      if (scenariosRes.data) setScenarios(scenariosRes.data);
+      const [scenariosRes, domainsRes] = await Promise.all([
+        axios.get('http://localhost:8000/api/simulator/scenarios').catch(() => ({ data: [] })),
+        axios.get('http://localhost:8000/api/simulator/domains').catch(() => ({ data: [] }))
+      ]);
 
-      await runSimulation(ulpinPct, vectorPct, dbtDays, siaDays, adrRate, govtSwapPct);
+      if (scenariosRes.data) setScenarios(scenariosRes.data);
+      if (domainsRes.data) setDomains(domainsRes.data);
+
+      await runSimulation(selectedDomain, ulpinPct, vectorPct, dbtDays, siaDays, adrRate, govtSwapPct, customBudgetCr, customLandHa);
     } catch (err) {
       console.error("Error loading simulator initial data:", err);
     } finally {
@@ -71,16 +87,21 @@ export default function PolicySimulator() {
     }
   };
 
-  const runSimulation = async (uPct, vPct, dDays, sDays, aRate, gSwap) => {
+  const runSimulation = async (domain, uPct, vPct, dDays, sDays, aRate, gSwap, budgetCr, landHa) => {
     try {
-      const res = await axios.post('http://localhost:8000/api/simulator/predict', {
+      const payload = {
+        project_domain: domain,
         ulpin_pct: uPct,
         vector_pct: vPct,
         dbt_days: dDays,
         sia_days: sDays,
         adr_rate: aRate,
-        govt_swap_pct: gSwap
-      });
+        govt_swap_pct: gSwap,
+        custom_budget_cr: budgetCr ? parseFloat(budgetCr) : null,
+        custom_land_ha: landHa ? parseFloat(landHa) : null
+      };
+
+      const res = await axios.post('http://localhost:8000/api/simulator/predict', payload);
       if (res.data) setSimResult(res.data);
     } catch (err) {
       console.error("Simulation API error:", err);
@@ -93,13 +114,19 @@ export default function PolicySimulator() {
     setter(value);
   };
 
-  // Trigger simulation update when sliders settle
+  // Handle Domain Change
+  const handleDomainChange = (domainId) => {
+    setSelectedDomain(domainId);
+    runSimulation(domainId, ulpinPct, vectorPct, dbtDays, siaDays, adrRate, govtSwapPct, customBudgetCr, customLandHa);
+  };
+
+  // Trigger simulation update when sliders or custom parameters change
   useEffect(() => {
     const timer = setTimeout(() => {
-      runSimulation(ulpinPct, vectorPct, dbtDays, siaDays, adrRate, govtSwapPct);
+      runSimulation(selectedDomain, ulpinPct, vectorPct, dbtDays, siaDays, adrRate, govtSwapPct, customBudgetCr, customLandHa);
     }, 150);
     return () => clearTimeout(timer);
-  }, [ulpinPct, vectorPct, dbtDays, siaDays, adrRate, govtSwapPct]);
+  }, [selectedDomain, ulpinPct, vectorPct, dbtDays, siaDays, adrRate, govtSwapPct, customBudgetCr, customLandHa]);
 
   // Handle Preset Scenario Select
   const applyScenario = (sc) => {
@@ -121,16 +148,19 @@ export default function PolicySimulator() {
     setSiaDays(60);
     setAdrRate(20);
     setGovtSwapPct(10);
+    setCustomBudgetCr('');
+    setCustomLandHa('');
   };
 
   const admin = simResult?.administrative_metrics;
   const socio = simResult?.socio_economic_usp_metrics;
+  const currentDomain = simResult?.domain;
 
   return (
     <div style={{ maxWidth: '1440px', margin: '2rem auto 4rem auto', padding: '0 1.5rem' }}>
       
       {/* 1. HEADER BANNER */}
-      <div className="glass-panel" style={{ padding: '1.5rem 2rem', marginBottom: '1.5rem' }}>
+      <div className="glass-panel" style={{ padding: '1.5rem 2rem', marginBottom: '1.25rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.25rem' }}>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -149,14 +179,14 @@ export default function PolicySimulator() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                 <h2 style={{ fontSize: '1.4rem', color: '#f8fafc', fontWeight: 700 }}>
-                  Policy & Acquisition Simulator
+                  Multi-Sector Policy & Acquisition Simulator
                 </h2>
                 <span className="badge badge-purple" style={{ background: 'rgba(139, 92, 246, 0.15)', color: '#c084fc', border: '1px solid rgba(139, 92, 246, 0.3)', padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}>
-                  Feature 4 Dual Engine
+                  Predictive Engine
                 </span>
               </div>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.2rem' }}>
-                Evidence-Based Policy Reform Sandbox for DoLR & Ministry of Rural Development (SIH 2026 PS 26019)
+                Predictive Reform Sandbox across 5 Diverse Infrastructure Sectors (SIH 2026 PS 26019 / DoLR)
               </p>
             </div>
           </div>
@@ -209,7 +239,45 @@ export default function PolicySimulator() {
         </div>
       </div>
 
-      {/* 2. MAIN SPLIT GRID (CONTROL PANEL ON LEFT + ANALYTICS ON RIGHT) */}
+      {/* 2. DIVERSE POLICY SECTOR SELECTOR BAR (5 DOMAINS) */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.65rem', color: 'var(--text-muted)', fontSize: '0.82rem', fontWeight: 600 }}>
+          <Globe size={15} color="#38bdf8" />
+          <span>Select Infrastructure & Policy Project Sector:</span>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.75rem' }}>
+          {domains.map((dom) => {
+            const isSelected = selectedDomain === dom.id;
+            return (
+              <button
+                key={dom.id}
+                onClick={() => handleDomainChange(dom.id)}
+                style={{
+                  textAlign: 'left',
+                  padding: '0.85rem',
+                  borderRadius: '10px',
+                  background: isSelected ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(139, 92, 246, 0.15))' : 'rgba(15, 23, 42, 0.6)',
+                  border: isSelected ? '1px solid #818cf8' : '1px solid var(--border-color)',
+                  color: isSelected ? '#ffffff' : '#cbd5e1',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  boxShadow: isSelected ? '0 4px 14px rgba(99, 102, 241, 0.25)' : 'none'
+                }}
+              >
+                <div style={{ fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>{dom.name.split(" ")[0]} {dom.name.split(" ").slice(1).join(" ")}</span>
+                </div>
+                <div style={{ fontSize: '0.72rem', color: isSelected ? '#c084fc' : 'var(--text-muted)', marginTop: '0.25rem', fontWeight: 600 }}>
+                  {dom.category}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 3. MAIN SPLIT GRID (CONTROL PANEL ON LEFT + ANALYTICS ON RIGHT) */}
       <div style={{ display: 'grid', gridTemplateColumns: '400px 1fr', gap: '1.5rem', alignItems: 'start' }}>
         
         {/* ================= LEFT POLICY CONTROL SANDBOX ================= */}
@@ -270,11 +338,61 @@ export default function PolicySimulator() {
             </div>
           </div>
 
+          {/* Custom Project Constraints (Optional) */}
+          <div className="glass-panel" style={{ padding: '1rem 1.25rem' }}>
+            <div style={{ color: '#cbd5e1', fontWeight: 700, fontSize: '0.82rem', marginBottom: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Settings size={15} color="#38bdf8" />
+              <span>Custom Project Scope (Optional)</span>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
+              <div>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Budget (₹ Cr)</label>
+                <input 
+                  type="number"
+                  placeholder={`Default: ${currentDomain?.base_project_cost_cr || 500}`}
+                  value={customBudgetCr}
+                  onChange={(e) => setCustomBudgetCr(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(30, 41, 59, 0.6)',
+                    border: '1px solid var(--border-color)',
+                    color: '#ffffff',
+                    fontSize: '0.8rem',
+                    padding: '0.35rem 0.6rem',
+                    borderRadius: '6px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Land Req (ha)</label>
+                <input 
+                  type="number"
+                  placeholder={`Default: ${currentDomain?.total_project_land_ha || 1800}`}
+                  value={customLandHa}
+                  onChange={(e) => setCustomLandHa(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(30, 41, 59, 0.6)',
+                    border: '1px solid var(--border-color)',
+                    color: '#ffffff',
+                    fontSize: '0.8rem',
+                    padding: '0.35rem 0.6rem',
+                    borderRadius: '6px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Interactive Policy Reform Sliders */}
           <div className="glass-panel" style={{ padding: '1.25rem' }}>
             <div style={{ color: '#f8fafc', fontWeight: 700, fontSize: '0.92rem', marginBottom: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Sliders size={17} color="#6366f1" />
-              <span>Policy Leverage Levers</span>
+              <span>Policy Reform Levers</span>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -447,7 +565,7 @@ export default function PolicySimulator() {
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Budget Overruns Saved</span>
                     <DollarSign size={16} color="#34d399" />
                   </div>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#34d399' }}>
+                  <div style={{ fontSize: '1.4rem', fontWeight 700, color: '#34d399' }}>
                     ₹ {admin.savings_cr} <span style={{ fontSize: '0.8rem', color: '#a7f3d0' }}>Cr</span>
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
@@ -461,7 +579,7 @@ export default function PolicySimulator() {
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Litigation Risk Index</span>
                     <AlertTriangle size={16} color={admin.risk_color} />
                   </div>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 700, color: admin.risk_color }}>
+                  <div style={{ fontSize: '1.4rem', fontWeight 700, color: admin.risk_color }}>
                     {admin.risk_level} <span style={{ fontSize: '0.85rem' }}>({admin.simulated_risk_pct}%)</span>
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
@@ -475,7 +593,7 @@ export default function PolicySimulator() {
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Govt Land Bank Swap</span>
                     <Building2 size={16} color="#c084fc" />
                   </div>
-                  <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#c084fc' }}>
+                  <div style={{ fontSize: '1.3rem', fontWeight 700, color: '#c084fc' }}>
                     {admin.govt_land_ha_used} <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ha</span>
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
@@ -490,13 +608,13 @@ export default function PolicySimulator() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                   <div>
                     <h4 style={{ fontSize: '0.95rem', color: '#f8fafc', fontWeight: 700 }}>
-                      Acquisition Completion Trajectory (S-Curve)
+                      Acquisition Completion Trajectory (S-Curve) — {currentDomain?.name}
                     </h4>
                     <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      Cumulative Land Parcel Acquisition Completion over Project Months (0 - 30 M)
+                      Cumulative Land Parcel Acquisition Completion over Project Months
                     </p>
                   </div>
-                  <span className="badge badge-emerald">Real-Time Predictive Curve</span>
+                  <span className="badge badge-emerald">Sector Predictive Model</span>
                 </div>
 
                 <div style={{ width: '100%', height: '260px' }}>
@@ -520,7 +638,7 @@ export default function PolicySimulator() {
                         labelStyle={{ color: '#ffffff' }}
                       />
                       <Legend wrapperStyle={{ fontSize: '0.8rem' }} />
-                      <Area type="monotone" dataKey="baseline_pct" name="Baseline Trajectory (24.5 M)" stroke="#ef4444" fillOpacity={1} fill="url(#baselineGrad)" strokeWidth={2} strokeDasharray="4 4" />
+                      <Area type="monotone" dataKey="baseline_pct" name={`Baseline Trajectory (${admin.baseline_months} M)`} stroke="#ef4444" fillOpacity={1} fill="url(#baselineGrad)" strokeWidth={2} strokeDasharray="4 4" />
                       <Area type="monotone" dataKey="simulated_pct" name="Simulated Reform Trajectory" stroke="#10b981" fillOpacity={1} fill="url(#simulatedGrad)" strokeWidth={3} />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -577,10 +695,10 @@ export default function PolicySimulator() {
                 <div>
                   <div style={{ fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Users size={18} />
-                    <span>Citizen & Human Impact Predictor (SIH 2026 Platform USP)</span>
+                    <span>Citizen & Human Impact Predictor — {currentDomain?.name}</span>
                   </div>
                   <p style={{ fontSize: '0.78rem', color: '#d1fae5', marginTop: '0.2rem' }}>
-                    Forecasts direct social welfare, fuel conservation, traffic decongestion, and local employment creation.
+                    Predictive analysis of direct social welfare, household expense savings, traffic decongestion, and job creation.
                   </p>
                 </div>
                 <span style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.2)', padding: '0.35rem 0.75rem', borderRadius: '20px', fontWeight: 600 }}>
@@ -591,28 +709,28 @@ export default function PolicySimulator() {
               {/* 4 Socio-Economic Metric Cards */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
                 
-                {/* Socio KPI 1: Fuel Saved */}
+                {/* Socio KPI 1: Primary Sector Metric */}
                 <div className="glass-panel" style={{ padding: '1rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Daily Fuel Conserved</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{currentDomain?.primary_metric_label || 'Daily Fuel Saved'}</span>
                     <Fuel size={16} color="#38bdf8" />
                   </div>
                   <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#38bdf8' }}>
-                    {socio.daily_fuel_saved_liters.toLocaleString()} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>L/Day</span>
+                    {socio.domain_primary_str}
                   </div>
                   <div style={{ fontSize: '0.72rem', color: '#34d399', marginTop: '0.2rem' }}>
                     ₹ {socio.annual_household_savings_rs.toLocaleString()}/yr per family
                   </div>
                 </div>
 
-                {/* Socio KPI 2: Traffic Decongestion */}
+                {/* Socio KPI 2: Secondary Sector Metric */}
                 <div className="glass-panel" style={{ padding: '1rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Traffic Decongestion</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{currentDomain?.secondary_metric_label || 'Traffic Decongestion'}</span>
                     <Car size={16} color="#34d399" />
                   </div>
                   <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#34d399' }}>
-                    {socio.traffic_decongestion_pct}% <span style={{ fontSize: '0.75rem', color: '#a7f3d0' }}>Cut</span>
+                    {socio.domain_secondary_str}
                   </div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                     {socio.baseline_travel_time_mins}m $\rightarrow$ {socio.simulated_travel_time_mins}m peak commute
@@ -625,25 +743,25 @@ export default function PolicySimulator() {
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Employment Created</span>
                     <Briefcase size={16} color="#c084fc" />
                   </div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#c084fc' }}>
+                  <div style={{ fontSize: '1.25rem', fontWeight 700, color: '#c084fc' }}>
                     {socio.total_jobs_created.toLocaleString()} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Jobs</span>
                   </div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                    {socio.direct_construction_jobs.toLocaleString()} Direct Construction
+                    {socio.direct_construction_jobs.toLocaleString()} Direct
                   </div>
                 </div>
 
                 {/* Socio KPI 4: Farm Income */}
                 <div className="glass-panel" style={{ padding: '1rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Agri Income Boost</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Agri & Land Appreciation</span>
                     <Wheat size={16} color="#f59e0b" />
                   </div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f59e0b' }}>
+                  <div style={{ fontSize: '1.25rem', fontWeight 700, color: '#f59e0b' }}>
                     +{socio.farm_income_boost_pct}% <span style={{ fontSize: '0.75rem', color: '#fef3c7' }}>Income</span>
                   </div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                    Land Appreciation: {socio.surrounding_land_appreciation_mult}x
+                    Land Value: {socio.surrounding_land_appreciation_mult}x
                   </div>
                 </div>
 
@@ -651,17 +769,17 @@ export default function PolicySimulator() {
 
               {/* Employment Creation Multiplier Bar Chart */}
               <div className="glass-panel" style={{ padding: '1.25rem' }}>
-                <h4 style={{ fontSize: '0.95rem', color: '#f8fafc', fontWeight: 700, marginBottom: '0.75rem' }}>
-                  Local Job Creation Breakdown (Direct Infrastructure vs Indirect Logistics)
+                <h4 style={{ fontSize: '0.95rem', color: '#f8fafc', fontWeight 700, marginBottom: '0.75rem' }}>
+                  Employment Creation Breakdown (Direct Sector vs Indirect Supply Chain)
                 </h4>
                 
                 <div style={{ width: '100%', height: '180px' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart 
                       data={[
-                        { name: 'Direct Construction', jobs: socio.direct_construction_jobs },
-                        { name: 'Indirect Logistics & Warehousing', jobs: socio.indirect_logistics_jobs },
-                        { name: 'Total Employment', jobs: socio.total_jobs_created }
+                        { name: 'Direct Execution Jobs', jobs: socio.direct_construction_jobs },
+                        { name: 'Indirect Supply Chain Jobs', jobs: socio.indirect_logistics_jobs },
+                        { name: 'Total Employment Multiplier', jobs: socio.total_jobs_created }
                       ]}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
@@ -683,32 +801,32 @@ export default function PolicySimulator() {
               {/* Agricultural & Household Impact Grid */}
               <div className="glass-panel" style={{ padding: '1.25rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                 <div style={{ background: 'rgba(30, 41, 59, 0.4)', padding: '0.85rem', borderRadius: '8px' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Crop Loss Reduction</div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#34d399', marginTop: '0.2rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Crop Loss & Supply Efficiency</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight 700, color: '#34d399', marginTop: '0.2rem' }}>
                     {socio.perishable_crop_loss_reduction_pct}% <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Saved</span>
                   </div>
                   <p style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.2rem' }}>
-                    Faster road transport avoids post-harvest perishable crop loss.
+                    Optimized transport prevents supply chain and agricultural crop losses.
                   </p>
                 </div>
 
                 <div style={{ background: 'rgba(30, 41, 59, 0.4)', padding: '0.85rem', borderRadius: '8px' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Land Value Appreciation</div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#c084fc', marginTop: '0.2rem' }}>
+                  <div style={{ fontSize: '1.2rem', fontWeight 700, color: '#c084fc', marginTop: '0.2rem' }}>
                     {socio.surrounding_land_appreciation_mult}x <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Multiplier</span>
                   </div>
                   <p style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.2rem' }}>
-                    Circle rate appreciation for surrounding rural landholders.
+                    Circle rate appreciation for surrounding landholders.
                   </p>
                 </div>
 
                 <div style={{ background: 'rgba(30, 41, 59, 0.4)', padding: '0.85rem', borderRadius: '8px' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Household Travel Savings</div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f59e0b', marginTop: '0.2rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Household Expense Reduction</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight 700, color: '#f59e0b', marginTop: '0.2rem' }}>
                     ₹ {socio.annual_household_savings_rs.toLocaleString()} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>/ yr</span>
                   </div>
                   <p style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.2rem' }}>
-                    Out-of-pocket commuter transport expense reduction per family.
+                    Out-of-pocket annual transport & energy expense reduction per family.
                   </p>
                 </div>
               </div>
@@ -720,7 +838,7 @@ export default function PolicySimulator() {
           {simResult && (
             <div className="glass-panel" style={{ padding: '1.25rem', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#818cf8', fontWeight: 700, fontSize: '0.9rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#818cf8', fontWeight 700, fontSize: '0.9rem' }}>
                   <Sparkles size={18} />
                   <span>Grounded AI Executive Narrative & Brief</span>
                 </div>

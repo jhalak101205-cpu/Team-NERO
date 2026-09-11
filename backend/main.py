@@ -61,12 +61,15 @@ class CorridorRequest(BaseModel):
     points: List[List[float]]
 
 class SimulatorRequest(BaseModel):
+    project_domain: Optional[str] = "highway"
     ulpin_pct: Optional[float] = 68.2
     vector_pct: Optional[float] = 76.5
     dbt_days: Optional[float] = 90.0
     sia_days: Optional[float] = 60.0
     adr_rate: Optional[float] = 20.0
     govt_swap_pct: Optional[float] = 10.0
+    custom_budget_cr: Optional[float] = None
+    custom_land_ha: Optional[float] = None
 
 @app.get("/")
 def read_root():
@@ -188,18 +191,26 @@ def post_corridor_analysis(req: CorridorRequest):
     """Analyze proposed highway/road corridor route for government land bank vs litigation conflict"""
     return gis_service.analyze_corridor(points=req.points)
 
-# Feature 4: Policy & Acquisition Simulator Endpoints (Dual Engine)
+# Feature 4: Policy & Acquisition Simulator Endpoints (Dual Engine + Multi-Domain)
 @app.post("/api/simulator/predict")
 def post_simulator_predict(req: SimulatorRequest):
-    """Predict administrative land governance and socio-economic citizen impact metrics"""
+    """Predict administrative land governance and socio-economic citizen impact metrics across diverse policy sectors"""
     return simulator_service.predict(
-        ulpin_pct=req.ulpin_pct,
-        vector_pct=req.vector_pct,
-        dbt_days=req.dbt_days,
-        sia_days=req.sia_days,
-        adr_rate=req.adr_rate,
-        govt_swap_pct=req.govt_swap_pct
+        project_domain=req.project_domain or "highway",
+        ulpin_pct=req.ulpin_pct if req.ulpin_pct is not None else 68.2,
+        vector_pct=req.vector_pct if req.vector_pct is not None else 76.5,
+        dbt_days=req.dbt_days if req.dbt_days is not None else 90.0,
+        sia_days=req.sia_days if req.sia_days is not None else 60.0,
+        adr_rate=req.adr_rate if req.adr_rate is not None else 20.0,
+        govt_swap_pct=req.govt_swap_pct if req.govt_swap_pct is not None else 10.0,
+        custom_budget_cr=req.custom_budget_cr,
+        custom_land_ha=req.custom_land_ha
     )
+
+@app.get("/api/simulator/domains")
+def get_simulator_domains():
+    """List 5 diverse infrastructure policy domain options"""
+    return simulator_service.get_domains()
 
 @app.get("/api/simulator/scenarios")
 def get_simulator_scenarios():
