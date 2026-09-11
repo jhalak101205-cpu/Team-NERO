@@ -593,7 +593,7 @@ export default function PolicySimulator() {
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Govt Land Bank Swap</span>
                     <Building2 size={16} color="#c084fc" />
                   </div>
-                  <div style={{ fontSize: '1.3rem', fontWeight 700, color: '#c084fc' }}>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#c084fc' }}>
                     {admin.govt_land_ha_used} <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ha</span>
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
@@ -743,7 +743,7 @@ export default function PolicySimulator() {
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Employment Created</span>
                     <Briefcase size={16} color="#c084fc" />
                   </div>
-                  <div style={{ fontSize: '1.25rem', fontWeight 700, color: '#c084fc' }}>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#c084fc' }}>
                     {socio.total_jobs_created.toLocaleString()} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Jobs</span>
                   </div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
@@ -757,7 +757,7 @@ export default function PolicySimulator() {
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Agri & Land Appreciation</span>
                     <Wheat size={16} color="#f59e0b" />
                   </div>
-                  <div style={{ fontSize: '1.25rem', fontWeight 700, color: '#f59e0b' }}>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f59e0b' }}>
                     +{socio.farm_income_boost_pct}% <span style={{ fontSize: '0.75rem', color: '#fef3c7' }}>Income</span>
                   </div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
@@ -769,7 +769,7 @@ export default function PolicySimulator() {
 
               {/* Employment Creation Multiplier Bar Chart */}
               <div className="glass-panel" style={{ padding: '1.25rem' }}>
-                <h4 style={{ fontSize: '0.95rem', color: '#f8fafc', fontWeight 700, marginBottom: '0.75rem' }}>
+                <h4 style={{ fontSize: '0.95rem', color: '#f8fafc', fontWeight: 700, marginBottom: '0.75rem' }}>
                   Employment Creation Breakdown (Direct Sector vs Indirect Supply Chain)
                 </h4>
                 
@@ -802,7 +802,7 @@ export default function PolicySimulator() {
               <div className="glass-panel" style={{ padding: '1.25rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                 <div style={{ background: 'rgba(30, 41, 59, 0.4)', padding: '0.85rem', borderRadius: '8px' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Crop Loss & Supply Efficiency</div>
-                  <div style={{ fontSize: '1.2rem', fontWeight 700, color: '#34d399', marginTop: '0.2rem' }}>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#34d399', marginTop: '0.2rem' }}>
                     {socio.perishable_crop_loss_reduction_pct}% <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Saved</span>
                   </div>
                   <p style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.2rem' }}>
@@ -812,7 +812,7 @@ export default function PolicySimulator() {
 
                 <div style={{ background: 'rgba(30, 41, 59, 0.4)', padding: '0.85rem', borderRadius: '8px' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Land Value Appreciation</div>
-                  <div style={{ fontSize: '1.2rem', fontWeight 700, color: '#c084fc', marginTop: '0.2rem' }}>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#c084fc', marginTop: '0.2rem' }}>
                     {socio.surrounding_land_appreciation_mult}x <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Multiplier</span>
                   </div>
                   <p style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.2rem' }}>
@@ -822,7 +822,7 @@ export default function PolicySimulator() {
 
                 <div style={{ background: 'rgba(30, 41, 59, 0.4)', padding: '0.85rem', borderRadius: '8px' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Household Expense Reduction</div>
-                  <div style={{ fontSize: '1.2rem', fontWeight 700, color: '#f59e0b', marginTop: '0.2rem' }}>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f59e0b', marginTop: '0.2rem' }}>
                     ₹ {socio.annual_household_savings_rs.toLocaleString()} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>/ yr</span>
                   </div>
                   <p style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.2rem' }}>
@@ -838,7 +838,7 @@ export default function PolicySimulator() {
           {simResult && (
             <div className="glass-panel" style={{ padding: '1.25rem', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#818cf8', fontWeight 700, fontSize: '0.9rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#818cf8', fontWeight: 700, fontSize: '0.9rem' }}>
                   <Sparkles size={18} />
                   <span>Grounded AI Executive Narrative & Brief</span>
                 </div>
