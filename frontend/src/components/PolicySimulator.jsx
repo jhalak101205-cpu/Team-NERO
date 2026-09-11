@@ -565,7 +565,7 @@ export default function PolicySimulator() {
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Budget Overruns Saved</span>
                     <DollarSign size={16} color="#34d399" />
                   </div>
-                  <div style={{ fontSize: '1.4rem', fontWeight 700, color: '#34d399' }}>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#34d399' }}>
                     ₹ {admin.savings_cr} <span style={{ fontSize: '0.8rem', color: '#a7f3d0' }}>Cr</span>
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
@@ -579,7 +579,7 @@ export default function PolicySimulator() {
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Litigation Risk Index</span>
                     <AlertTriangle size={16} color={admin.risk_color} />
                   </div>
-                  <div style={{ fontSize: '1.4rem', fontWeight 700, color: admin.risk_color }}>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 700, color: admin.risk_color }}>
                     {admin.risk_level} <span style={{ fontSize: '0.85rem' }}>({admin.simulated_risk_pct}%)</span>
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
