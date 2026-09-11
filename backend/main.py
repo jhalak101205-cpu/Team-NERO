@@ -70,6 +70,12 @@ class SimulatorRequest(BaseModel):
     govt_swap_pct: Optional[float] = 10.0
     custom_budget_cr: Optional[float] = None
     custom_land_ha: Optional[float] = None
+    start_city: Optional[str] = "Point A (Origin)"
+    end_city: Optional[str] = "Point B (Destination)"
+    start_lat: Optional[float] = 30.9010
+    start_lng: Optional[float] = 75.8573
+    end_lat: Optional[float] = 31.3260
+    end_lng: Optional[float] = 75.5762
 
 @app.get("/")
 def read_root():
@@ -191,10 +197,10 @@ def post_corridor_analysis(req: CorridorRequest):
     """Analyze proposed highway/road corridor route for government land bank vs litigation conflict"""
     return gis_service.analyze_corridor(points=req.points)
 
-# Feature 4: Policy & Acquisition Simulator Endpoints (Dual Engine + Multi-Domain)
+# Feature 4: Policy & Acquisition Simulator Endpoints (Dual Engine + Spatial Alignment)
 @app.post("/api/simulator/predict")
 def post_simulator_predict(req: SimulatorRequest):
-    """Predict administrative land governance and socio-economic citizen impact metrics across diverse policy sectors"""
+    """Predict administrative land governance, Point A to B route alignment, and socio-economic citizen impact metrics"""
     return simulator_service.predict(
         project_domain=req.project_domain or "highway",
         ulpin_pct=req.ulpin_pct if req.ulpin_pct is not None else 68.2,
@@ -204,7 +210,13 @@ def post_simulator_predict(req: SimulatorRequest):
         adr_rate=req.adr_rate if req.adr_rate is not None else 20.0,
         govt_swap_pct=req.govt_swap_pct if req.govt_swap_pct is not None else 10.0,
         custom_budget_cr=req.custom_budget_cr,
-        custom_land_ha=req.custom_land_ha
+        custom_land_ha=req.custom_land_ha,
+        start_city=req.start_city,
+        end_city=req.end_city,
+        start_lat=req.start_lat,
+        start_lng=req.start_lng,
+        end_lat=req.end_lat,
+        end_lng=req.end_lng
     )
 
 @app.get("/api/simulator/domains")

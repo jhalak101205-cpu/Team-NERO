@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
+  MapContainer, 
+  TileLayer, 
+  Polyline, 
+  Marker, 
+  Popup 
+} from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { 
   AreaChart, 
   Area, 
   BarChart, 
@@ -31,18 +40,51 @@ import {
   Sparkles, 
   Printer, 
   RefreshCcw,
-  Sun,
-  Layers,
-  Settings,
-  Globe
+  Globe,
+  Navigation,
+  CheckCircle2,
+  MapPin,
+  Compass,
+  Settings
 } from 'lucide-react';
 
+// Fix Leaflet default icon URLs in React
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
+// Custom Waypoint Marker Icons
+const originIcon = L.divIcon({
+  className: 'custom-origin-icon',
+  html: `<div style="background:#10b981; width:16px; height:16px; border-radius:50%; border:3px solid #ffffff; box-shadow:0 0 12px rgba(16,185,129,0.9);"></div>`,
+  iconSize: [16, 16],
+  iconAnchor: [8, 8]
+});
+
+const destIcon = L.divIcon({
+  className: 'custom-dest-icon',
+  html: `<div style="background:#ef4444; width:16px; height:16px; border-radius:50%; border:3px solid #ffffff; box-shadow:0 0 12px rgba(239,68,68,0.9);"></div>`,
+  iconSize: [16, 16],
+  iconAnchor: [8, 8]
+});
+
 export default function PolicySimulator() {
-  // Domain State: 'highway', 'solar_park', 'industrial_corridor', 'agri_canal', 'urban_lps'
+  // Sector Domain State
   const [selectedDomain, setSelectedDomain] = useState('highway');
   const [domains, setDomains] = useState([]);
 
-  // Custom Project Inputs
+  // Spatial Route Alignment State (Point A to Point B)
+  const [startCity, setStartCity] = useState('Ludhiana Hub');
+  const [endCity, setEndCity] = useState('Jalandhar Corridor');
+  const [startLat, setStartLat] = useState(30.9010);
+  const [startLng, setStartLng] = useState(75.8573);
+  const [endLat, setEndLat] = useState(31.3260);
+  const [endLng, setEndLng] = useState(75.5762);
+
+  // Custom Scope State
   const [customBudgetCr, setCustomBudgetCr] = useState('');
   const [customLandHa, setCustomLandHa] = useState('');
 
@@ -57,13 +99,13 @@ export default function PolicySimulator() {
   // Active View Tab: 'admin' (Land Governance) or 'socio' (Citizen Impact USP)
   const [viewTab, setViewTab] = useState('admin');
 
-  // Simulation API Data
+  // Simulation API Output
   const [simResult, setSimResult] = useState(null);
   const [scenarios, setScenarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeScenarioId, setActiveScenarioId] = useState(null);
 
-  // Fetch domains & initial data
+  // Fetch preset scenarios & initial data
   useEffect(() => {
     fetchInitialData();
   }, []);
@@ -79,7 +121,7 @@ export default function PolicySimulator() {
       if (scenariosRes.data) setScenarios(scenariosRes.data);
       if (domainsRes.data) setDomains(domainsRes.data);
 
-      await runSimulation(selectedDomain, ulpinPct, vectorPct, dbtDays, siaDays, adrRate, govtSwapPct, customBudgetCr, customLandHa);
+      await runSimulation(selectedDomain, ulpinPct, vectorPct, dbtDays, siaDays, adrRate, govtSwapPct, customBudgetCr, customLandHa, startCity, endCity, startLat, startLng, endLat, endLng);
     } catch (err) {
       console.error("Error loading simulator initial data:", err);
     } finally {
@@ -87,7 +129,7 @@ export default function PolicySimulator() {
     }
   };
 
-  const runSimulation = async (domain, uPct, vPct, dDays, sDays, aRate, gSwap, budgetCr, landHa) => {
+  const runSimulation = async (domain, uPct, vPct, dDays, sDays, aRate, gSwap, budgetCr, landHa, sCity, eCity, sLat, sLng, eLat, eLng) => {
     try {
       const payload = {
         project_domain: domain,
@@ -98,7 +140,13 @@ export default function PolicySimulator() {
         adr_rate: aRate,
         govt_swap_pct: gSwap,
         custom_budget_cr: budgetCr ? parseFloat(budgetCr) : null,
-        custom_land_ha: landHa ? parseFloat(landHa) : null
+        custom_land_ha: landHa ? parseFloat(landHa) : null,
+        start_city: sCity,
+        end_city: eCity,
+        start_lat: parseFloat(sLat),
+        start_lng: parseFloat(sLng),
+        end_lat: parseFloat(eLat),
+        end_lng: parseFloat(eLng)
       };
 
       const res = await axios.post('http://localhost:8000/api/simulator/predict', payload);
@@ -108,27 +156,27 @@ export default function PolicySimulator() {
     }
   };
 
-  // Slider Change Handlers
+  // Slider Change Handler
   const handleSliderChange = (setter, value) => {
     setActiveScenarioId(null);
     setter(value);
   };
 
-  // Handle Domain Change
+  // Sector Change Handler
   const handleDomainChange = (domainId) => {
     setSelectedDomain(domainId);
-    runSimulation(domainId, ulpinPct, vectorPct, dbtDays, siaDays, adrRate, govtSwapPct, customBudgetCr, customLandHa);
+    runSimulation(domainId, ulpinPct, vectorPct, dbtDays, siaDays, adrRate, govtSwapPct, customBudgetCr, customLandHa, startCity, endCity, startLat, startLng, endLat, endLng);
   };
 
-  // Trigger simulation update when sliders or custom parameters change
+  // Debounced execution when inputs settle
   useEffect(() => {
     const timer = setTimeout(() => {
-      runSimulation(selectedDomain, ulpinPct, vectorPct, dbtDays, siaDays, adrRate, govtSwapPct, customBudgetCr, customLandHa);
+      runSimulation(selectedDomain, ulpinPct, vectorPct, dbtDays, siaDays, adrRate, govtSwapPct, customBudgetCr, customLandHa, startCity, endCity, startLat, startLng, endLat, endLng);
     }, 150);
     return () => clearTimeout(timer);
-  }, [selectedDomain, ulpinPct, vectorPct, dbtDays, siaDays, adrRate, govtSwapPct, customBudgetCr, customLandHa]);
+  }, [selectedDomain, ulpinPct, vectorPct, dbtDays, siaDays, adrRate, govtSwapPct, customBudgetCr, customLandHa, startCity, endCity, startLat, startLng, endLat, endLng]);
 
-  // Handle Preset Scenario Select
+  // Apply Preset Scenario
   const applyScenario = (sc) => {
     setActiveScenarioId(sc.id);
     setUlpinPct(sc.ulpin_pct);
@@ -142,6 +190,13 @@ export default function PolicySimulator() {
   // Reset to Baseline
   const resetToBaseline = () => {
     setActiveScenarioId(null);
+    setSelectedDomain('highway');
+    setStartCity('Ludhiana Hub');
+    setEndCity('Jalandhar Corridor');
+    setStartLat(30.9010);
+    setStartLng(75.8573);
+    setEndLat(31.3260);
+    setEndLng(75.5762);
     setUlpinPct(68.2);
     setVectorPct(76.5);
     setDbtDays(90);
@@ -154,7 +209,10 @@ export default function PolicySimulator() {
 
   const admin = simResult?.administrative_metrics;
   const socio = simResult?.socio_economic_usp_metrics;
+  const routeLoc = simResult?.route_location;
   const currentDomain = simResult?.domain;
+
+  const mapCenter = [(startLat + endLat) / 2, (startLng + endLng) / 2];
 
   return (
     <div style={{ maxWidth: '1440px', margin: '2rem auto 4rem auto', padding: '0 1.5rem' }}>
@@ -179,14 +237,14 @@ export default function PolicySimulator() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                 <h2 style={{ fontSize: '1.4rem', color: '#f8fafc', fontWeight: 700 }}>
-                  Multi-Sector Policy & Acquisition Simulator
+                  Spatial Policy & Acquisition Simulator
                 </h2>
                 <span className="badge badge-purple" style={{ background: 'rgba(139, 92, 246, 0.15)', color: '#c084fc', border: '1px solid rgba(139, 92, 246, 0.3)', padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}>
-                  Predictive Engine
+                  Point A $\rightarrow$ B Feasibility
                 </span>
               </div>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.2rem' }}>
-                Predictive Reform Sandbox across 5 Diverse Infrastructure Sectors (SIH 2026 PS 26019 / DoLR)
+                Predictive Governance & Citizen Impact Engine for DoLR & Ministry of Rural Development (SIH 2026 PS 26019)
               </p>
             </div>
           </div>
@@ -239,8 +297,8 @@ export default function PolicySimulator() {
         </div>
       </div>
 
-      {/* 2. DIVERSE POLICY SECTOR SELECTOR BAR (5 DOMAINS) */}
-      <div style={{ marginBottom: '1.5rem' }}>
+      {/* 2. DIVERSE POLICY SECTOR SELECTOR BAR */}
+      <div style={{ marginBottom: '1.25rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.65rem', color: 'var(--text-muted)', fontSize: '0.82rem', fontWeight: 600 }}>
           <Globe size={15} color="#38bdf8" />
           <span>Select Infrastructure & Policy Project Sector:</span>
@@ -278,11 +336,104 @@ export default function PolicySimulator() {
       </div>
 
       {/* 3. MAIN SPLIT GRID (CONTROL PANEL ON LEFT + ANALYTICS ON RIGHT) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '400px 1fr', gap: '1.5rem', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '410px 1fr', gap: '1.5rem', alignItems: 'start' }}>
         
-        {/* ================= LEFT POLICY CONTROL SANDBOX ================= */}
+        {/* ================= LEFT CONTROLS ================= */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
           
+          {/* Spatial Route / Location Marker Panel (Point A to Point B) */}
+          <div className="glass-panel" style={{ padding: '1.25rem', border: '1px solid rgba(16, 185, 129, 0.35)' }}>
+            <div style={{ color: '#34d399', fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <Navigation size={17} />
+              <span>Project Route & Location Selector (Point A $\rightarrow$ B)</span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem', marginBottom: '0.75rem' }}>
+              <div>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Point A (Origin)</label>
+                <input 
+                  type="text"
+                  value={startCity}
+                  onChange={(e) => setStartCity(e.target.value)}
+                  placeholder="e.g. Ludhiana Hub"
+                  style={{
+                    width: '100%',
+                    background: 'rgba(30, 41, 59, 0.7)',
+                    border: '1px solid var(--border-color)',
+                    color: '#ffffff',
+                    fontSize: '0.8rem',
+                    padding: '0.4rem 0.6rem',
+                    borderRadius: '6px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Point B (Destination)</label>
+                <input 
+                  type="text"
+                  value={endCity}
+                  onChange={(e) => setEndCity(e.target.value)}
+                  placeholder="e.g. Jalandhar Corridor"
+                  style={{
+                    width: '100%',
+                    background: 'rgba(30, 41, 59, 0.7)',
+                    border: '1px solid var(--border-color)',
+                    color: '#ffffff',
+                    fontSize: '0.8rem',
+                    padding: '0.4rem 0.6rem',
+                    borderRadius: '6px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Custom Scope (Budget & Land) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
+              <div>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Base Budget (₹ Cr)</label>
+                <input 
+                  type="number"
+                  placeholder={`Default: ${currentDomain?.base_project_cost_cr || 500}`}
+                  value={customBudgetCr}
+                  onChange={(e) => setCustomBudgetCr(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(30, 41, 59, 0.6)',
+                    border: '1px solid var(--border-color)',
+                    color: '#ffffff',
+                    fontSize: '0.8rem',
+                    padding: '0.35rem 0.6rem',
+                    borderRadius: '6px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Land Needed (ha)</label>
+                <input 
+                  type="number"
+                  placeholder={`Default: ${currentDomain?.total_project_land_ha || 1800}`}
+                  value={customLandHa}
+                  onChange={(e) => setCustomLandHa(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(30, 41, 59, 0.6)',
+                    border: '1px solid var(--border-color)',
+                    color: '#ffffff',
+                    fontSize: '0.8rem',
+                    padding: '0.35rem 0.6rem',
+                    borderRadius: '6px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Preset Quick Scenarios */}
           <div className="glass-panel" style={{ padding: '1.25rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
@@ -335,56 +486,6 @@ export default function PolicySimulator() {
                   </button>
                 );
               })}
-            </div>
-          </div>
-
-          {/* Custom Project Constraints (Optional) */}
-          <div className="glass-panel" style={{ padding: '1rem 1.25rem' }}>
-            <div style={{ color: '#cbd5e1', fontWeight: 700, fontSize: '0.82rem', marginBottom: '0.65rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Settings size={15} color="#38bdf8" />
-              <span>Custom Project Scope (Optional)</span>
-            </div>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
-              <div>
-                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Budget (₹ Cr)</label>
-                <input 
-                  type="number"
-                  placeholder={`Default: ${currentDomain?.base_project_cost_cr || 500}`}
-                  value={customBudgetCr}
-                  onChange={(e) => setCustomBudgetCr(e.target.value)}
-                  style={{
-                    width: '100%',
-                    background: 'rgba(30, 41, 59, 0.6)',
-                    border: '1px solid var(--border-color)',
-                    color: '#ffffff',
-                    fontSize: '0.8rem',
-                    padding: '0.35rem 0.6rem',
-                    borderRadius: '6px',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>Land Req (ha)</label>
-                <input 
-                  type="number"
-                  placeholder={`Default: ${currentDomain?.total_project_land_ha || 1800}`}
-                  value={customLandHa}
-                  onChange={(e) => setCustomLandHa(e.target.value)}
-                  style={{
-                    width: '100%',
-                    background: 'rgba(30, 41, 59, 0.6)',
-                    border: '1px solid var(--border-color)',
-                    color: '#ffffff',
-                    fontSize: '0.8rem',
-                    padding: '0.35rem 0.6rem',
-                    borderRadius: '6px',
-                    outline: 'none'
-                  }}
-                />
-              </div>
             </div>
           </div>
 
@@ -534,9 +635,70 @@ export default function PolicySimulator() {
 
         </div>
 
-        {/* ================= RIGHT PREDICTIVE ANALYTICS DASHBOARD ================= */}
+        {/* ================= RIGHT PREDICTIVE DASHBOARD ================= */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
+          {/* SPATIAL LOCATION SUITABILITY BANNER */}
+          {routeLoc && (
+            <div className="glass-panel" style={{ padding: '1.1rem', border: `1px solid ${routeLoc.suitability_color}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.45rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Compass size={20} color={routeLoc.suitability_color} />
+                  <span style={{ fontSize: '0.95rem', fontWeight: 700, color: routeLoc.suitability_color }}>
+                    {routeLoc.suitability_rating} ({routeLoc.suitability_score}%)
+                  </span>
+                </div>
+                <span className="badge badge-emerald">
+                  Corridor Distance: {routeLoc.route_distance_km} km
+                </span>
+              </div>
+              
+              <div style={{ fontSize: '0.82rem', color: '#f8fafc', lineHeight: '1.45', background: 'rgba(15, 23, 42, 0.6)', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                {routeLoc.optimal_recommendation}
+              </div>
+            </div>
+          )}
+
+          {/* INTERACTIVE ROUTE ALIGNMENT PREVIEW MAP */}
+          <div style={{ position: 'relative', height: '240px', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-color)', boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}>
+            <MapContainer 
+              center={mapCenter} 
+              zoom={8} 
+              style={{ width: '100%', height: '100%', background: '#0f172a' }}
+              scrollWheelZoom={false}
+            >
+              <TileLayer 
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+                attribution="Esri World Street Map"
+              />
+              <Marker position={[startLat, startLng]} icon={originIcon}>
+                <Popup><strong>{startCity}</strong><br/>Corridor Start (Point A)</Popup>
+              </Marker>
+              <Marker position={[endLat, endLng]} icon={destIcon}>
+                <Popup><strong>{endCity}</strong><br/>Corridor End (Point B)</Popup>
+              </Marker>
+              <Polyline 
+                positions={[[startLat, startLng], [endLat, endLng]]}
+                pathOptions={{ color: '#10b981', weight: 4, opacity: 0.85, dashArray: '6, 6' }}
+              />
+            </MapContainer>
+            <div style={{
+              position: 'absolute',
+              top: '10px',
+              left: '10px',
+              zIndex: 1000,
+              background: 'rgba(15, 23, 42, 0.85)',
+              padding: '0.35rem 0.75rem',
+              borderRadius: '6px',
+              fontSize: '0.75rem',
+              color: '#ffffff',
+              fontWeight: 600,
+              backdropFilter: 'blur(6px)'
+            }}>
+              🟢 {startCity} $\rightarrow$ 🔴 {endCity} ({routeLoc?.route_distance_km || 64.5} km)
+            </div>
+          </div>
+
           {/* VIEW TAB 1: 🏛️ ADMINISTRATIVE LAND GOVERNANCE */}
           {viewTab === 'admin' && admin && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -617,7 +779,7 @@ export default function PolicySimulator() {
                   <span className="badge badge-emerald">Sector Predictive Model</span>
                 </div>
 
-                <div style={{ width: '100%', height: '260px' }}>
+                <div style={{ width: '100%', height: '240px' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={admin.s_curve_timeline}>
                       <defs>

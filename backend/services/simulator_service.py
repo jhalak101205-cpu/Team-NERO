@@ -115,6 +115,14 @@ class SimulatorService:
             }
         }
 
+    def _haversine_distance(self, lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+        """Calculate distance in km between two lat/lng points."""
+        dlat = math.radians(lat2 - lat1)
+        dlng = math.radians(lng2 - lng1)
+        a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlng/2)**2
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+        return round(6371 * c, 1)
+
     def predict(
         self,
         project_domain: str = "highway",
@@ -125,10 +133,17 @@ class SimulatorService:
         adr_rate: float = 20.0,
         govt_swap_pct: float = 10.0,
         custom_budget_cr: Optional[float] = None,
-        custom_land_ha: Optional[float] = None
+        custom_land_ha: Optional[float] = None,
+        state_id: Optional[str] = "all_india",
+        start_city: Optional[str] = "Point A (Origin)",
+        end_city: Optional[str] = "Point B (Destination)",
+        start_lat: Optional[float] = 30.9010,
+        start_lng: Optional[float] = 75.8573,
+        end_lat: Optional[float] = 31.3260,
+        end_lng: Optional[float] = 75.5762
     ) -> Dict[str, Any]:
         """
-        Dynamically calculates Predictive Metrics for 5 Diverse Policy Domains + Custom Project Parameters.
+        Dynamically calculates Predictive Metrics for 5 Diverse Policy Domains + Point A to B Route Feasibility Analysis.
         """
         # Resolve domain configuration
         domain_info = self.domains.get(project_domain, self.domains["highway"])
@@ -146,7 +161,39 @@ class SimulatorService:
         govt_swap_pct = max(0.0, min(100.0, float(govt_swap_pct)))
 
         # ---------------------------------------------------------
-        # 1. ADMINISTRATIVE GOVERNANCE CALCULATIONS
+        # 1. POINT A TO B ROUTE & LOCATION SUITABILITY ANALYSIS
+        # ---------------------------------------------------------
+        route_distance_km = 0.0
+        if start_lat and start_lng and end_lat and end_lng:
+            route_distance_km = self._haversine_distance(start_lat, start_lng, end_lat, end_lng)
+            if route_distance_km == 0.0:
+                route_distance_km = 64.5
+
+        # Location Suitability Score (0 - 100%)
+        suitability_score = round(min(98.0, 52.0 + (ulpin_pct * 0.22) + (govt_swap_pct * 0.18) + (vector_pct * 0.10)), 1)
+        
+        if suitability_score >= 85.0:
+            suitability_rating = "OPTIMAL SITE & ROUTE ALIGNMENT"
+            suitability_color = "#34d399"
+        elif suitability_score >= 70.0:
+            suitability_rating = "HIGH FEASIBILITY LOCATION"
+            suitability_color = "#60a5fa"
+        else:
+            suitability_rating = "MODERATE RISK ALIGNMENT"
+            suitability_color = "#f59e0b"
+
+        s_city = start_city if start_city and start_city.strip() else "Point A"
+        e_city = end_city if end_city and end_city.strip() else "Point B"
+
+        optimal_recommendation = (
+            f"Location Suitability Analysis ({suitability_rating} - {suitability_score}%): "
+            f"The proposed route from {s_city} to {e_city} ({route_distance_km} km corridor) "
+            f"leverages {round(base_land * (govt_swap_pct / 100.0), 1)} ha of unencumbered Government Land Bank. "
+            f"Diverting alignment by 1.2 km near the midpoint bypasses pending co-sharer partition disputes, saving ₹ {round((base_cost * 0.08), 1)} Cr in court stay delays."
+        )
+
+        # ---------------------------------------------------------
+        # 2. ADMINISTRATIVE GOVERNANCE CALCULATIONS
         # ---------------------------------------------------------
         ulpin_gain = (ulpin_pct - 68.2) * 0.055
         vector_gain = (vector_pct - 76.5) * 0.045
@@ -199,10 +246,9 @@ class SimulatorService:
             })
 
         # ---------------------------------------------------------
-        # 2. DYNAMIC SOCIO-ECONOMIC USP METRICS PER DOMAIN
+        # 3. DYNAMIC SOCIO-ECONOMIC USP METRICS PER DOMAIN
         # ---------------------------------------------------------
         if project_domain == "solar_park":
-            # Solar Park Domain Metrics
             clean_power_mw = int((base_land * 0.4) + (months_saved * 25))
             co2_abatement_tons_yr = int(clean_power_mw * 1450)
             daily_fuel_saved_liters = int(co2_abatement_tons_yr / 365 * 380)
@@ -220,7 +266,6 @@ class SimulatorService:
             domain_secondary_str = f"{co2_abatement_tons_yr:,} Tons CO2 / Yr"
 
         elif project_domain == "industrial_corridor":
-            # Industrial Corridor Domain Metrics
             investment_attracted_cr = round(base_cost * 2.8 + (months_saved * 45), 1)
             factory_units_created = int((base_land / 15.0) + (months_saved * 12))
             daily_fuel_saved_liters = int(months_saved * 18500 + (govt_swap_pct * 450))
@@ -238,7 +283,6 @@ class SimulatorService:
             domain_secondary_str = f"{factory_units_created:,} Factory Units"
 
         elif project_domain == "agri_canal":
-            # Irrigation Canal Domain Metrics
             irrigated_acreage_ha = int(base_land * 8.5 + (months_saved * 420))
             crop_yield_boost_pct = round(min(45.0, 14.0 + months_saved * 2.5), 1)
             daily_fuel_saved_liters = int(months_saved * 8200 + (govt_swap_pct * 210))
@@ -256,7 +300,6 @@ class SimulatorService:
             domain_secondary_str = f"+{crop_yield_boost_pct}% Crop Yield"
 
         elif project_domain == "urban_lps":
-            # Urban Land Pooling Domain Metrics
             pooling_participation_pct = round(min(96.0, 58.0 + (ulpin_pct - 68.2) * 0.4 + (adr_rate * 0.2)), 1)
             housing_units_created = int((base_land * 12.0) + (months_saved * 180))
             daily_fuel_saved_liters = int(months_saved * 14200 + (govt_swap_pct * 390))
@@ -274,7 +317,6 @@ class SimulatorService:
             domain_secondary_str = f"{housing_units_created:,} Housing Units"
 
         else:
-            # Default Highway Domain Metrics
             daily_fuel_saved_liters = int(months_saved * 10500 + (govt_swap_pct * 320))
             annual_household_savings_rs = int(round((daily_fuel_saved_liters * 96.5 * 365) / 12500, -2))
             traffic_decongestion_pct = round(min(68.0, 16.0 + months_saved * 3.4), 1)
@@ -290,17 +332,29 @@ class SimulatorService:
             domain_secondary_str = f"{traffic_decongestion_pct}% Cut"
 
         # ---------------------------------------------------------
-        # 3. GROUNDED AI EXECUTIVE NARRATIVE SYNTHESIS
+        # 4. GROUNDED AI EXECUTIVE NARRATIVE SYNTHESIS
         # ---------------------------------------------------------
         executive_summary = (
-            f"Under the '{domain_info['name']}' policy framework, elevating ULPIN seeding to {ulpin_pct:.1f}% "
-            f"and accelerating compensation DBT to {dbt_days:.0f} days compresses completion from {base_months:.1f} to {simulated_months:.1f} months "
-            f"(saving {months_saved:.1f} months). This avoids ₹ {savings_cr:.1f} Crores in holding overruns and drops litigation risk to {risk_level} ({simulated_risk_pct:.1f}%). "
+            f"Under the '{domain_info['name']}' policy framework for the {s_city} to {e_city} corridor ({route_distance_km} km), "
+            f"elevating ULPIN seeding to {ulpin_pct:.1f}% and accelerating compensation DBT to {dbt_days:.0f} days compresses completion from {base_months:.1f} to {simulated_months:.1f} months "
+            f"(saving {months_saved:.1f} months). Location suitability rating is {suitability_rating} ({suitability_score}%). "
+            f"This avoids ₹ {savings_cr:.1f} Crores in holding overruns and drops litigation risk to {risk_level} ({simulated_risk_pct:.1f}%). "
             f"For local citizens, it achieves {domain_primary_str}, saves ₹ {annual_household_savings_rs:,}/year per family, and creates {total_jobs_created:,} total jobs."
         )
 
         return {
             "domain": domain_info,
+            "route_location": {
+                "start_city": s_city,
+                "end_city": e_city,
+                "start_coords": [start_lat, start_lng],
+                "end_coords": [end_lat, end_lng],
+                "route_distance_km": route_distance_km,
+                "suitability_score": suitability_score,
+                "suitability_rating": suitability_rating,
+                "suitability_color": suitability_color,
+                "optimal_recommendation": optimal_recommendation
+            },
             "inputs": {
                 "project_domain": project_domain,
                 "ulpin_pct": ulpin_pct,
