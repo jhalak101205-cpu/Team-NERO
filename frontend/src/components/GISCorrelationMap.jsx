@@ -3,7 +3,6 @@ import axios from 'axios';
 import { 
   MapContainer, 
   TileLayer, 
-  GeoJSON, 
   Polyline, 
   Marker, 
   Popup, 
@@ -104,7 +103,6 @@ export default function GISCorrelationMap() {
   // GIS data states
   const [nationalSummary, setNationalSummary] = useState(null);
   const [temporalTrends, setTemporalTrends] = useState(null);
-  const [geoJsonData, setGeoJsonData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState(null);
@@ -112,10 +110,7 @@ export default function GISCorrelationMap() {
   // Map interaction states
   const [mapCenter, setMapCenter] = useState([22.5937, 78.9629]);
   const [mapZoom, setMapZoom] = useState(5);
-  const [activeCategoryFilter, setActiveCategoryFilter] = useState('all');
   const [mouseCoords, setMouseCoords] = useState({ lat: 22.5937, lng: 78.9629 });
-  const [selectedFeature, setSelectedFeature] = useState(null);
-  const [showLegend, setShowLegend] = useState(true);
   const [tileMode, setTileMode] = useState('street'); // 'street' (Esri), 'satellite' (Esri Hybrid), 'osm' (OpenStreetMap)
   
   // Infrastructure / Road Corridor Planning
@@ -178,8 +173,6 @@ export default function GISCorrelationMap() {
         setTemporalTrends(trendsRes.data);
       }
 
-      // Load initial national GeoJSON
-      loadGeoJson('national', 'all_india', 'all');
     } catch (err) {
       console.error("Error loading GIS data:", err);
     } finally {
@@ -187,22 +180,10 @@ export default function GISCorrelationMap() {
     }
   };
 
-  // 2. Load GeoJSON layers
-  const loadGeoJson = async (level, id, category) => {
-    try {
-      const url = `http://localhost:8000/api/gis/geojson?level=${level}&id=${id}${category && category !== 'all' ? `&category=${category}` : ''}`;
-      const res = await axios.get(url);
-      setGeoJsonData(res.data);
-    } catch (err) {
-      console.warn("Failed to fetch GeoJSON from API, using fallback data:", err);
-    }
-  };
-
-  // 3. Handle State Selection (Dynamically updates Donut Chart & Map)
+  // 2. Handle State Selection (Dynamically updates Donut Chart & Map)
   const handleStateChange = async (stateId) => {
     setSelectedState(stateId);
     setSelectedDistrict('all');
-    setSelectedFeature(null);
     setCorridorPoints([]);
     setCorridorResult(null);
 
@@ -216,7 +197,6 @@ export default function GISCorrelationMap() {
       setMapCenter([22.5937, 78.9629]);
       setMapZoom(5);
       setDistricts([]);
-      loadGeoJson('national', 'all_india', activeCategoryFilter);
       const trendsRes = await axios.get('http://localhost:8000/api/gis/temporal-trends').catch(() => ({ data: null }));
       if (trendsRes.data) setTemporalTrends(trendsRes.data);
     } else {
@@ -225,17 +205,15 @@ export default function GISCorrelationMap() {
         setMapCenter(stateObj.center);
         setMapZoom(stateObj.zoom || 7);
         setDistricts(stateObj.districts || []);
-        loadGeoJson('state', stateId, activeCategoryFilter);
         const trendsRes = await axios.get(`http://localhost:8000/api/gis/temporal-trends?state=${stateId}`).catch(() => ({ data: null }));
         if (trendsRes.data) setTemporalTrends(trendsRes.data);
       }
     }
   };
 
-  // 4. Handle District Selection (Dynamically updates Donut Chart & Map)
+  // 3. Handle District Selection (Dynamically updates Donut Chart & Map)
   const handleDistrictChange = async (districtId) => {
     setSelectedDistrict(districtId);
-    setSelectedFeature(null);
     setCorridorPoints([]);
     setCorridorResult(null);
 
@@ -257,28 +235,17 @@ export default function GISCorrelationMap() {
       if (stateObj) {
         setMapCenter(stateObj.center);
         setMapZoom(stateObj.zoom || 7);
-        loadGeoJson('state', selectedState, activeCategoryFilter);
       }
     } else {
       const distObj = districts.find(d => d.id === districtId);
       if (distObj) {
         setMapCenter(distObj.center);
         setMapZoom(distObj.zoom || 10);
-        loadGeoJson('district', districtId, activeCategoryFilter);
       }
     }
   };
 
-
-  // 5. Handle Category Filter Chips
-  const handleCategoryFilter = (catCode) => {
-    setActiveCategoryFilter(catCode);
-    const level = selectedDistrict !== 'all' ? 'district' : (selectedState !== 'all_india' ? 'state' : 'national');
-    const id = selectedDistrict !== 'all' ? selectedDistrict : selectedState;
-    loadGeoJson(level, id, catCode);
-  };
-
-  // 6. Handle Corridor Planning Points
+  // 4. Handle Corridor Planning Points
   const handleMapClickForCorridor = async (latlng) => {
     const newPoints = [...corridorPoints, [latlng.lat, latlng.lng]];
     setCorridorPoints(newPoints);
@@ -301,40 +268,6 @@ export default function GISCorrelationMap() {
   const resetCorridorPlanner = () => {
     setCorridorPoints([]);
     setCorridorResult(null);
-  };
-
-  // Styling helper for GeoJSON features
-  const geoJsonStyle = (feature) => {
-    const isDisputed = feature.properties.type === 'disputed';
-    const isGovt = feature.properties.type === 'govt_land';
-    return {
-      fillColor: feature.properties.color || '#3b82f6',
-      weight: isDisputed ? 2.5 : (isGovt ? 2 : 1),
-      opacity: 0.9,
-      color: isDisputed ? '#ff0055' : (isGovt ? '#a855f7' : '#ffffff'),
-      dashArray: isDisputed ? '4, 4' : '',
-      fillOpacity: feature.properties.fill_opacity || 0.6
-    };
-  };
-
-  const onEachFeature = (feature, layer) => {
-    layer.on({
-      mouseover: (e) => {
-        const l = e.target;
-        l.setStyle({
-          weight: 3,
-          color: '#38bdf8',
-          fillOpacity: 0.85
-        });
-      },
-      mouseout: (e) => {
-        const l = e.target;
-        l.setStyle(geoJsonStyle(feature));
-      },
-      click: () => {
-        setSelectedFeature(feature.properties);
-      }
-    });
   };
 
   // Tile configuration based on mode
@@ -664,16 +597,12 @@ export default function GISCorrelationMap() {
                 {nationalSummary.lulc_distribution.map((item) => (
                   <div 
                     key={item.code} 
-                    onClick={() => handleCategoryFilter(item.code)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.5rem',
-                      cursor: 'pointer',
                       padding: '0.3rem 0.4rem',
-                      borderRadius: '6px',
-                      background: activeCategoryFilter === item.code ? 'rgba(255,255,255,0.08)' : 'transparent',
-                      transition: 'background 0.2s'
+                      borderRadius: '6px'
                     }}
                   >
                     <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: item.color, flexShrink: 0 }} />
@@ -863,100 +792,11 @@ export default function GISCorrelationMap() {
             </div>
           )}
 
-          {/* INSPECTED FEATURE DRAWER (ON MAP CLICK) */}
-          {selectedFeature && (
-            <div className="glass-panel animate-fade-in" style={{ padding: '1.1rem', border: '1px solid rgba(99, 102, 241, 0.4)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                  Parcel Property Card
-                </span>
-                <button 
-                  onClick={() => setSelectedFeature(null)}
-                  style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.8rem' }}
-                >
-                  ✕
-                </button>
-              </div>
-
-              <h4 style={{ fontSize: '1rem', color: '#f8fafc', fontWeight: 700, marginBottom: '0.4rem' }}>
-                {selectedFeature.name}
-              </h4>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem', fontSize: '0.78rem', marginTop: '0.5rem' }}>
-                {selectedFeature.khasra_no && (
-                  <div>Khasra No: <strong style={{ color: '#ffffff' }}>{selectedFeature.khasra_no}</strong></div>
-                )}
-                {selectedFeature.ulpin_bhu_aadhar && (
-                  <div>ULPIN: <strong style={{ color: '#38bdf8' }}>{selectedFeature.ulpin_bhu_aadhar}</strong></div>
-                )}
-                {selectedFeature.area_acres && (
-                  <div>Area: <strong style={{ color: '#ffffff' }}>{selectedFeature.area_acres} Acres</strong></div>
-                )}
-                {selectedFeature.dispute_rate_pct && (
-                  <div>Dispute Rate: <strong style={{ color: '#f87171' }}>{selectedFeature.dispute_rate_pct}%</strong></div>
-                )}
-              </div>
-
-              <div style={{ marginTop: '0.6rem', padding: '0.5rem', borderRadius: '6px', background: selectedFeature.type === 'disputed' ? 'rgba(220, 38, 38, 0.15)' : 'rgba(16, 185, 129, 0.15)', fontSize: '0.75rem', color: selectedFeature.type === 'disputed' ? '#fca5a5' : '#86efac' }}>
-                {selectedFeature.litigation_risk || selectedFeature.recommendation || 'Official DILRMP GIS Parcel'}
-              </div>
-            </div>
-          )}
-
         </div>
 
         {/* ================= RIGHT INTERACTIVE LEAFLET MAP ================= */}
         <div style={{ position: 'relative', height: '820px', borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--border-color)', boxShadow: '0 12px 36px rgba(0,0,0,0.45)' }}>
           
-          {/* Floating Category Filter Chips (Top Center of Map) */}
-          <div style={{
-            position: 'absolute',
-            top: '12px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 1000,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            background: 'rgba(15, 23, 42, 0.88)',
-            backdropFilter: 'blur(12px)',
-            padding: '0.35rem 0.6rem',
-            borderRadius: '30px',
-            border: '1px solid var(--border-color)',
-            boxShadow: '0 6px 20px rgba(0,0,0,0.4)',
-            maxWidth: '92%',
-            overflowX: 'auto'
-          }}>
-            {[
-              { id: 'all', label: 'All Layers' },
-              { id: 'rural_agri', label: '🌾 Agricultural' },
-              { id: 'forest', label: '🌲 Forest' },
-              { id: 'urban', label: '🏢 Urban' },
-              { id: 'govt_land', label: '🟣 Govt Land Bank' },
-              { id: 'water_body', label: '🔵 Water Bodies' },
-              { id: 'disputed', label: '⚠️ Disputed' }
-            ].map((chip) => (
-              <button
-                key={chip.id}
-                onClick={() => handleCategoryFilter(chip.id)}
-                style={{
-                  background: activeCategoryFilter === chip.id ? 'var(--accent-indigo)' : 'transparent',
-                  color: activeCategoryFilter === chip.id ? '#ffffff' : 'var(--text-muted)',
-                  border: 'none',
-                  padding: '0.3rem 0.75rem',
-                  borderRadius: '20px',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {chip.label}
-              </button>
-            ))}
-          </div>
-
           {/* Tile Layer Mode Switcher (Top Right) */}
           <div style={{
             position: 'absolute',
@@ -1054,15 +894,6 @@ export default function GISCorrelationMap() {
               isPlanningMode={isPlanningMode}
             />
 
-            {/* Render GeoJSON Polygons */}
-            {geoJsonData && (
-              <GeoJSON 
-                key={`${selectedState}_${selectedDistrict}_${activeCategoryFilter}`}
-                data={geoJsonData} 
-                style={geoJsonStyle}
-                onEachFeature={onEachFeature}
-              />
-            )}
 
             {/* Render Proposed Road / Highway Corridor Waypoints & Polyline */}
             {corridorPoints.length > 0 && (
@@ -1088,60 +919,6 @@ export default function GISCorrelationMap() {
 
           </MapContainer>
 
-          {/* Floating Collapsible Legend (Bottom Left) */}
-          <div style={{
-            position: 'absolute',
-            bottom: '24px',
-            left: '16px',
-            zIndex: 1000,
-            background: 'rgba(15, 23, 42, 0.92)',
-            backdropFilter: 'blur(12px)',
-            padding: '0.65rem 0.9rem',
-            borderRadius: '12px',
-            border: '1px solid var(--border-color)',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-            fontSize: '0.75rem',
-            maxWidth: '220px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.3rem' }}>
-              <span style={{ fontWeight: 700, color: '#f8fafc' }}>GIS Layer Legend</span>
-              <button 
-                onClick={() => setShowLegend(!showLegend)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.7rem' }}
-              >
-                {showLegend ? 'Hide' : 'Show'}
-              </button>
-            </div>
-            
-            {showLegend && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div style={{ width: '12px', height: '12px', background: '#16a34a', borderRadius: '2px' }} />
-                  <span style={{ color: '#e2e8f0' }}>Agricultural Land</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div style={{ width: '12px', height: '12px', background: '#15803d', borderRadius: '2px' }} />
-                  <span style={{ color: '#e2e8f0' }}>Forest & Eco-Zone</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div style={{ width: '12px', height: '12px', background: '#ef4444', borderRadius: '2px' }} />
-                  <span style={{ color: '#e2e8f0' }}>Urban Built-up</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div style={{ width: '12px', height: '12px', background: '#8b5cf6', borderRadius: '2px' }} />
-                  <span style={{ color: '#e2e8f0' }}>Govt. Land Bank (Free)</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div style={{ width: '12px', height: '12px', background: '#0284c7', borderRadius: '2px' }} />
-                  <span style={{ color: '#e2e8f0' }}>Water Resources</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div style={{ width: '12px', height: '12px', background: '#dc2626', borderRadius: '2px' }} />
-                  <span style={{ color: '#fca5a5', fontWeight: 600 }}>Disputed / Stay Order</span>
-                </div>
-              </div>
-            )}
-          </div>
 
           {/* Real-time Cursor Coordinates HUD (Bottom Right, TiNAI Style) */}
           <div style={{

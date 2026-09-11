@@ -137,7 +137,8 @@ def ask_question(request: AskRequest):
             detail="No documents indexed in ChromaDB collection. Please add PDFs to sample_docs/ and run 'python ingest.py' first."
         )
 
-    # 1. Retrieve Gemini API Key from environment
+    # 1. Retrieve Gemini API Key from environment (reload .env dynamically if changed)
+    load_dotenv(dotenv_path=ENV_PATH, override=True)
     gemini_api_key = os.getenv("GEMINI_API_KEY")
     if not gemini_api_key or gemini_api_key.strip() == "" or gemini_api_key == "your_gemini_api_key_here":
         raise HTTPException(
@@ -188,7 +189,7 @@ def ask_question(request: AskRequest):
 
         prompt = f"{system_instruction}\n\nCONTEXT EXCERPTS:\n{context_str}\n\nUSER QUESTION: {question}\n\nANSWER:"
 
-        # Call Gemini model (gemini-3.6-flash with fallback)
+        # Call Gemini model (gemini-3.6-flash with fallback to gemini-2.5-flash / gemini-flash-latest)
         try:
             model = genai.GenerativeModel("gemini-3.6-flash")
             response = model.generate_content(prompt)
@@ -198,7 +199,7 @@ def ask_question(request: AskRequest):
                 model = genai.GenerativeModel("gemini-2.5-flash")
                 response = model.generate_content(prompt)
             except Exception:
-                model = genai.GenerativeModel("gemini-1.5-flash")
+                model = genai.GenerativeModel("gemini-flash-latest")
                 response = model.generate_content(prompt)
 
         
