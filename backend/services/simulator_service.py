@@ -67,53 +67,70 @@ class SimulatorService:
             }
         }
 
-        # Preset Scenarios
-        self.preset_scenarios = {
-            "dilrmp_100": {
-                "id": "dilrmp_100",
-                "title": "🟢 Full DILRMP Digital Saturation",
-                "description": "100% ULPIN Bhu-Aadhaar seeding and 100% Cadastral Vectorization saturation across all tehsils.",
-                "ulpin_pct": 100.0,
-                "vector_pct": 100.0,
-                "dbt_days": 45,
-                "sia_days": 30,
-                "adr_rate": 50.0,
-                "govt_swap_pct": 40.0
-            },
-            "dbt_express": {
-                "id": "dbt_express",
-                "title": "⚡ 14-Day DBT Express Compensation",
-                "description": "Single-window clearance accelerating Direct Benefit Transfer payouts to landholders in 14 days.",
-                "ulpin_pct": 88.0,
-                "vector_pct": 85.0,
-                "dbt_days": 14,
-                "sia_days": 15,
-                "adr_rate": 60.0,
-                "govt_swap_pct": 30.0
-            },
-            "adr_fasttrack": {
-                "id": "adr_fasttrack",
-                "title": "⚖️ Revenue Court Fast-Track ADR",
-                "description": "Special Lok Adalat fast-track resolution resolving 85% of co-sharer partition disputes out of court.",
-                "ulpin_pct": 82.0,
-                "vector_pct": 80.0,
-                "dbt_days": 30,
-                "sia_days": 25,
-                "adr_rate": 85.0,
-                "govt_swap_pct": 25.0
-            },
-            "govt_swap": {
-                "id": "govt_swap",
-                "title": "🏛️ Govt Land Bank Priority Swap",
-                "description": "Maximizes public revenue wasteland swap (65%) to bypass private encumbered parcels.",
-                "ulpin_pct": 90.0,
-                "vector_pct": 92.0,
-                "dbt_days": 21,
-                "sia_days": 20,
-                "adr_rate": 70.0,
-                "govt_swap_pct": 65.0
-            }
+        # Comprehensive Database of Indian Cities & Corridor Hubs
+        self.city_db = {
+            "moradabad": (28.8386, 78.7733),
+            "delhi": (28.6139, 77.2090),
+            "new delhi": (28.6139, 77.2090),
+            "ncr": (28.6139, 77.2090),
+            "ludhiana": (30.9010, 75.8573),
+            "jalandhar": (31.3260, 75.5762),
+            "mumbai": (19.0760, 72.8777),
+            "pune": (18.5204, 73.8567),
+            "bengaluru": (12.9716, 77.5946),
+            "bangalore": (12.9716, 77.5946),
+            "chennai": (13.0827, 80.2707),
+            "hyderabad": (17.3850, 78.4867),
+            "kolkata": (22.5726, 88.3639),
+            "jaipur": (26.9124, 75.7873),
+            "ahmedabad": (23.0225, 72.5714),
+            "lucknow": (26.8467, 80.9462),
+            "varanasi": (25.3176, 82.9739),
+            "agra": (27.1767, 78.0081),
+            "kanpur": (26.4499, 80.3319),
+            "chandigarh": (30.7333, 76.7794),
+            "amritsar": (31.6340, 74.8723),
+            "bhopal": (23.2599, 77.4126),
+            "indore": (22.7196, 75.8577),
+            "nagpur": (21.1458, 79.0882),
+            "patna": (25.5941, 85.1376),
+            "ranchi": (23.3441, 85.3096),
+            "bhubaneswar": (20.2961, 85.8245),
+            "guwahati": (26.1445, 91.7362),
+            "dehradun": (30.3165, 78.0322),
+            "shimla": (31.1048, 77.1734),
+            "surat": (21.1702, 72.8311),
+            "vadodara": (22.3072, 73.1812),
+            "coimbatore": (11.0168, 76.9558),
+            "kochi": (9.9312, 76.2673),
+            "thiruvananthapuram": (8.5241, 76.9366),
+            "visakhapatnam": (17.6868, 83.2185),
+            "vijayawada": (16.5062, 80.6480),
+            "madurai": (9.9252, 78.1198),
+            "prayagraj": (25.4358, 81.8463),
+            "allahabad": (25.4358, 81.8463),
+            "gorakhpur": (26.7606, 83.3732),
+            "meerut": (28.9845, 77.7064),
+            "bareilly": (28.3670, 79.4304),
+            "aligarh": (27.8974, 78.0880),
+            "mathura": (27.4924, 77.6737),
+            "gwalior": (26.2183, 78.1828),
+            "jabalpur": (23.1815, 79.9864),
+            "udaipur": (24.5854, 73.7125),
+            "jodhpur": (26.2389, 73.0243),
+            "kota": (25.2138, 75.8648),
+            "nashik": (19.9975, 73.7898),
+            "aurangabad": (19.8762, 75.3433),
         }
+
+    def _resolve_city_coords(self, city_name: Optional[str], fallback_lat: float, fallback_lng: float) -> tuple[float, float]:
+        """Resolves city coordinates from internal database or returns fallback."""
+        if city_name:
+            clean = city_name.lower().strip()
+            for key, coords in self.city_db.items():
+                if key == clean or key in clean or clean in key:
+                    return coords
+        return (fallback_lat, fallback_lng)
 
     def _haversine_distance(self, lat1: float, lng1: float, lat2: float, lng2: float) -> float:
         """Calculate distance in km between two lat/lng points."""
@@ -135,12 +152,12 @@ class SimulatorService:
         custom_budget_cr: Optional[float] = None,
         custom_land_ha: Optional[float] = None,
         state_id: Optional[str] = "all_india",
-        start_city: Optional[str] = "Point A (Origin)",
-        end_city: Optional[str] = "Point B (Destination)",
-        start_lat: Optional[float] = 30.9010,
-        start_lng: Optional[float] = 75.8573,
-        end_lat: Optional[float] = 31.3260,
-        end_lng: Optional[float] = 75.5762
+        start_city: Optional[str] = "MORADABAD",
+        end_city: Optional[str] = "DELHI",
+        start_lat: Optional[float] = None,
+        start_lng: Optional[float] = None,
+        end_lat: Optional[float] = None,
+        end_lng: Optional[float] = None
     ) -> Dict[str, Any]:
         """
         Dynamically calculates Predictive Metrics for 5 Diverse Policy Domains + Point A to B Route Feasibility Analysis.
@@ -163,11 +180,19 @@ class SimulatorService:
         # ---------------------------------------------------------
         # 1. POINT A TO B ROUTE & LOCATION SUITABILITY ANALYSIS
         # ---------------------------------------------------------
-        route_distance_km = 0.0
-        if start_lat and start_lng and end_lat and end_lng:
-            route_distance_km = self._haversine_distance(start_lat, start_lng, end_lat, end_lng)
-            if route_distance_km == 0.0:
-                route_distance_km = 64.5
+        # Resolve actual coordinates from city name if not explicitly passed
+        s_lat, s_lng = self._resolve_city_coords(start_city, start_lat or 28.8386, start_lng or 78.7733)
+        e_lat, e_lng = self._resolve_city_coords(end_city, end_lat or 28.6139, end_lng or 77.2090)
+
+        # If user passed custom explicit lat/lng that differ from defaults, prioritize them
+        if start_lat is not None and start_lng is not None and (start_lat != 30.9010 or start_lng != 75.8573):
+            s_lat, s_lng = start_lat, start_lng
+        if end_lat is not None and end_lng is not None and (end_lat != 31.3260 or end_lng != 75.5762):
+            e_lat, e_lng = end_lat, end_lng
+
+        route_distance_km = self._haversine_distance(s_lat, s_lng, e_lat, e_lng)
+        if route_distance_km == 0.0:
+            route_distance_km = 160.2
 
         # Location Suitability Score (0 - 100%)
         suitability_score = round(min(98.0, 52.0 + (ulpin_pct * 0.22) + (govt_swap_pct * 0.18) + (vector_pct * 0.10)), 1)
@@ -347,8 +372,8 @@ class SimulatorService:
             "route_location": {
                 "start_city": s_city,
                 "end_city": e_city,
-                "start_coords": [start_lat, start_lng],
-                "end_coords": [end_lat, end_lng],
+                "start_coords": [s_lat, s_lng],
+                "end_coords": [e_lat, e_lng],
                 "route_distance_km": route_distance_km,
                 "suitability_score": suitability_score,
                 "suitability_rating": suitability_rating,

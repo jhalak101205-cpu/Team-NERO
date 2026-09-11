@@ -5,7 +5,8 @@ import {
   TileLayer, 
   Polyline, 
   Marker, 
-  Popup 
+  Popup,
+  useMap
 } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -56,6 +57,72 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
+// Database of Major Indian Cities and Infrastructure Nodes
+const INDIAN_CITIES_DB = {
+  'MORADABAD': { lat: 28.8386, lng: 78.7733 },
+  'DELHI': { lat: 28.6139, lng: 77.2090 },
+  'NEW DELHI': { lat: 28.6139, lng: 77.2090 },
+  'NCR': { lat: 28.6139, lng: 77.2090 },
+  'LUDHIANA': { lat: 30.9010, lng: 75.8573 },
+  'JALANDHAR': { lat: 31.3260, lng: 75.5762 },
+  'MUMBAI': { lat: 19.0760, lng: 72.8777 },
+  'PUNE': { lat: 18.5204, lng: 73.8567 },
+  'BENGALURU': { lat: 12.9716, lng: 77.5946 },
+  'BANGALORE': { lat: 12.9716, lng: 77.5946 },
+  'CHENNAI': { lat: 13.0827, lng: 80.2707 },
+  'HYDERABAD': { lat: 17.3850, lng: 78.4867 },
+  'KOLKATA': { lat: 22.5726, lng: 88.3639 },
+  'JAIPUR': { lat: 26.9124, lng: 75.7873 },
+  'AHMEDABAD': { lat: 23.0225, lng: 72.5714 },
+  'LUCKNOW': { lat: 26.8467, lng: 80.9462 },
+  'VARANASI': { lat: 25.3176, lng: 82.9739 },
+  'AGRA': { lat: 27.1767, lng: 78.0081 },
+  'KANPUR': { lat: 26.4499, lng: 80.3319 },
+  'CHANDIGARH': { lat: 30.7333, lng: 76.7794 },
+  'AMRITSAR': { lat: 31.6340, lng: 74.8723 },
+  'BHOPAL': { lat: 23.2599, lng: 77.4126 },
+  'INDORE': { lat: 22.7196, lng: 75.8577 },
+  'NAGPUR': { lat: 21.1458, lng: 79.0882 },
+  'PATNA': { lat: 25.5941, lng: 85.1376 },
+  'RANCHI': { lat: 23.3441, lng: 85.3096 },
+  'BHUBANESWAR': { lat: 20.2961, lng: 85.8245 },
+  'GUWAHATI': { lat: 26.1445, lng: 91.7362 },
+  'DEHRADUN': { lat: 30.3165, lng: 78.0322 },
+  'SHIMLA': { lat: 31.1048, lng: 77.1734 },
+  'SURAT': { lat: 21.1702, lng: 72.8311 },
+  'VADODARA': { lat: 22.3072, lng: 73.1812 },
+  'COIMBATORE': { lat: 11.0168, lng: 76.9558 },
+  'KOCHI': { lat: 9.9312, lng: 76.2673 },
+  'THIRUVANANTHAPURAM': { lat: 8.5241, lng: 76.9366 },
+  'VISAKHAPATNAM': { lat: 17.6868, lng: 83.2185 },
+  'VIJAYAWADA': { lat: 16.5062, lng: 80.6480 },
+  'MEERUT': { lat: 28.9845, lng: 77.7064 },
+  'BAREILLY': { lat: 28.3670, lng: 79.4304 },
+  'ALIGARH': { lat: 27.8974, lng: 78.0880 },
+  'MATHURA': { lat: 27.4924, lng: 77.6737 },
+  'GWALIOR': { lat: 26.2183, lng: 78.1828 },
+  'KOTA': { lat: 25.2138, lng: 75.8648 },
+  'NASHIK': { lat: 19.9975, lng: 73.7898 }
+};
+
+// Map View Auto-Fit Controller
+function MapController({ startLat, startLng, endLat, endLng }) {
+  const map = useMap();
+  useEffect(() => {
+    if (startLat && startLng && endLat && endLng) {
+      try {
+        map.fitBounds([
+          [startLat, startLng],
+          [endLat, endLng]
+        ], { padding: [40, 40], maxZoom: 12 });
+      } catch (e) {
+        console.error("Leaflet fitBounds error:", e);
+      }
+    }
+  }, [startLat, startLng, endLat, endLng, map]);
+  return null;
+}
+
 // Custom Waypoint Marker Icons
 const originIcon = L.divIcon({
   className: 'custom-origin-icon',
@@ -76,13 +143,13 @@ export default function PolicySimulator() {
   const [selectedDomain, setSelectedDomain] = useState('highway');
   const [domains, setDomains] = useState([]);
 
-  // Spatial Route Alignment State (Point A to Point B)
-  const [startCity, setStartCity] = useState('Ludhiana Hub');
-  const [endCity, setEndCity] = useState('Jalandhar Corridor');
-  const [startLat, setStartLat] = useState(30.9010);
-  const [startLng, setStartLng] = useState(75.8573);
-  const [endLat, setEndLat] = useState(31.3260);
-  const [endLng, setEndLng] = useState(75.5762);
+  // Spatial Route Alignment State (Point A to Point B) - Defaults to Moradabad -> Delhi
+  const [startCity, setStartCity] = useState('MORADABAD');
+  const [endCity, setEndCity] = useState('DELHI');
+  const [startLat, setStartLat] = useState(28.8386);
+  const [startLng, setStartLng] = useState(78.7733);
+  const [endLat, setEndLat] = useState(26.9124); // Delhi NCR / Central coordinates
+  const [endLng, setEndLng] = useState(77.2090);
 
   // Custom Scope State
   const [customBudgetCr, setCustomBudgetCr] = useState('');
@@ -156,6 +223,44 @@ export default function PolicySimulator() {
     }
   };
 
+  // Handle start city text input & auto coordinate resolution
+  const handleStartCityChange = (val) => {
+    setStartCity(val);
+    if (!val) return;
+    const clean = val.trim().toUpperCase();
+    for (const [key, coords] of Object.entries(INDIAN_CITIES_DB)) {
+      if (clean === key || clean.includes(key) || key.includes(clean)) {
+        setStartLat(coords.lat);
+        setStartLng(coords.lng);
+        break;
+      }
+    }
+  };
+
+  // Handle end city text input & auto coordinate resolution
+  const handleEndCityChange = (val) => {
+    setEndCity(val);
+    if (!val) return;
+    const clean = val.trim().toUpperCase();
+    for (const [key, coords] of Object.entries(INDIAN_CITIES_DB)) {
+      if (clean === key || clean.includes(key) || key.includes(clean)) {
+        setEndLat(coords.lat);
+        setEndLng(coords.lng);
+        break;
+      }
+    }
+  };
+
+  // Select Quick Corridor Preset
+  const handleSelectCorridor = (sName, sLat, sLng, eName, eLat, eLng) => {
+    setStartCity(sName);
+    setStartLat(sLat);
+    setStartLng(sLng);
+    setEndCity(eName);
+    setEndLat(eLat);
+    setEndLng(eLng);
+  };
+
   // Slider Change Handler
   const handleSliderChange = (setter, value) => {
     setActiveScenarioId(null);
@@ -191,12 +296,12 @@ export default function PolicySimulator() {
   const resetToBaseline = () => {
     setActiveScenarioId(null);
     setSelectedDomain('highway');
-    setStartCity('Ludhiana Hub');
-    setEndCity('Jalandhar Corridor');
-    setStartLat(30.9010);
-    setStartLng(75.8573);
-    setEndLat(31.3260);
-    setEndLng(75.5762);
+    setStartCity('MORADABAD');
+    setEndCity('DELHI');
+    setStartLat(28.8386);
+    setStartLng(78.7733);
+    setEndLat(28.6139);
+    setEndLng(77.2090);
     setUlpinPct(68.2);
     setVectorPct(76.5);
     setDbtDays(90);
@@ -240,7 +345,7 @@ export default function PolicySimulator() {
                   Spatial Policy & Acquisition Simulator
                 </h2>
                 <span className="badge badge-purple" style={{ background: 'rgba(139, 92, 246, 0.15)', color: '#c084fc', border: '1px solid rgba(139, 92, 246, 0.3)', padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}>
-                  Point A $\rightarrow$ B Feasibility
+                  Point A → B Feasibility
                 </span>
               </div>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.2rem' }}>
@@ -345,7 +450,42 @@ export default function PolicySimulator() {
           <div className="glass-panel" style={{ padding: '1.25rem', border: '1px solid rgba(16, 185, 129, 0.35)' }}>
             <div style={{ color: '#34d399', fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
               <Navigation size={17} />
-              <span>Project Route & Location Selector (Point A $\rightarrow$ B)</span>
+              <span>Project Route & Location Selector (Point A → B)</span>
+            </div>
+
+            {/* Quick Corridor Selection Presets */}
+            <div style={{ marginBottom: '0.75rem' }}>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>Popular Corridor Presets:</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                <button
+                  type="button"
+                  onClick={() => handleSelectCorridor('MORADABAD', 28.8386, 78.7733, 'DELHI', 28.6139, 77.2090)}
+                  style={{ background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.4)', color: '#a7f3d0', fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  📍 Moradabad → Delhi
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectCorridor('DELHI', 28.6139, 77.2090, 'JAIPUR', 26.9124, 75.7873)}
+                  style={{ background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.4)', color: '#bae6fd', fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  📍 Delhi → Jaipur
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectCorridor('MUMBAI', 19.0760, 72.8777, 'PUNE', 18.5204, 73.8567)}
+                  style={{ background: 'rgba(192, 132, 252, 0.15)', border: '1px solid rgba(192, 132, 252, 0.4)', color: '#e9d5ff', fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  📍 Mumbai → Pune
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectCorridor('LUDHIANA', 30.9010, 75.8573, 'JALANDHAR', 31.3260, 75.5762)}
+                  style={{ background: 'rgba(251, 191, 36, 0.15)', border: '1px solid rgba(251, 191, 36, 0.4)', color: '#fef08a', fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  📍 Ludhiana → Jalandhar
+                </button>
+              </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem', marginBottom: '0.75rem' }}>
@@ -354,8 +494,8 @@ export default function PolicySimulator() {
                 <input 
                   type="text"
                   value={startCity}
-                  onChange={(e) => setStartCity(e.target.value)}
-                  placeholder="e.g. Ludhiana Hub"
+                  onChange={(e) => handleStartCityChange(e.target.value)}
+                  placeholder="e.g. MORADABAD"
                   style={{
                     width: '100%',
                     background: 'rgba(30, 41, 59, 0.7)',
@@ -374,8 +514,8 @@ export default function PolicySimulator() {
                 <input 
                   type="text"
                   value={endCity}
-                  onChange={(e) => setEndCity(e.target.value)}
-                  placeholder="e.g. Jalandhar Corridor"
+                  onChange={(e) => handleEndCityChange(e.target.value)}
+                  placeholder="e.g. DELHI"
                   style={{
                     width: '100%',
                     background: 'rgba(30, 41, 59, 0.7)',
@@ -671,6 +811,7 @@ export default function PolicySimulator() {
                 url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
                 attribution="Esri World Street Map"
               />
+              <MapController startLat={startLat} startLng={startLng} endLat={endLat} endLng={endLng} />
               <Marker position={[startLat, startLng]} icon={originIcon}>
                 <Popup><strong>{startCity}</strong><br/>Corridor Start (Point A)</Popup>
               </Marker>
@@ -695,7 +836,7 @@ export default function PolicySimulator() {
               fontWeight: 600,
               backdropFilter: 'blur(6px)'
             }}>
-              🟢 {startCity} $\rightarrow$ 🔴 {endCity} ({routeLoc?.route_distance_km || 64.5} km)
+              🟢 {startCity} → 🔴 {endCity} ({routeLoc?.route_distance_km || 160.2} km)
             </div>
           </div>
 
@@ -895,7 +1036,7 @@ export default function PolicySimulator() {
                     {socio.domain_secondary_str}
                   </div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                    {socio.baseline_travel_time_mins}m $\rightarrow$ {socio.simulated_travel_time_mins}m peak commute
+                    {socio.baseline_travel_time_mins}m → {socio.simulated_travel_time_mins}m peak commute
                   </div>
                 </div>
 
