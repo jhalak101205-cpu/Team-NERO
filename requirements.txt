@@ -1,0 +1,22 @@
+# ==============================================================================
+# BhumiNexus (SIH 2026 - Problem Statement 26019)
+# Unified Dependencies for GIS Intelligence Platform & AI RAG Engine
+# ==============================================================================
+
+# Core Web Framework & Server
+fastapi>=0.110.0
+uvicorn>=0.28.0
+pydantic>=2.6.0
+python-multipart>=0.0.9
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# GIS Land Intelligence & Simulation Engine (Feature 2)
+pandas>=2.2.0
+numpy>=1.26.0
+
+# RAG Semantic Research & Policy Library (Feature 1)
+chromadb>=0.4.22
+sentence-transformers>=2.2.2
+pypdf>=4.0.0
+google-generativeai>=0.8.0

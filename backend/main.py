@@ -1,10 +1,24 @@
 import os
+import sys
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List
 
-from services.rag_service import RAGEngine
+# Ensure both backend/ and project root are in Python module search path
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(CURRENT_DIR)
+for path in [CURRENT_DIR, PROJECT_ROOT]:
+    if path not in sys.path:
+        sys.path.insert(0, path)
+
+# Safely import the production RAG engine from rag_app without modifying rag_app
+try:
+    import rag_app.app as rag_module
+except Exception as rag_err:
+    print(f"⚠️ Note: rag_app module import: {rag_err}")
+    rag_module = None
+
 from services.gis_service import gis_service
 
 app = FastAPI(
@@ -13,7 +27,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Enable CORS for React frontend (localhost:5173 / localhost:5174 / localhost:3000)
+# Enable CORS for React frontend (localhost:5173 / localhost:5174 / localhost:5175 / localhost:3000)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -22,44 +36,85 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize RAG Engine with sample documents directory
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data", "sample_documents")
-rag_engine = RAGEngine(data_dir=DATA_DIR)
+@app.on_event("startup")
+def startup_event():
+    """Startup hook to initialize RAG embeddings & ChromaDB connection within the unified API server."""
+    if rag_module:
+        try:
+            rag_module.startup_event()
+            print("✅ Integrated RAG Engine (ChromaDB + SentenceTransformers) initialized successfully.")
+        except Exception as e:
+            print(f"⚠️ RAG Engine startup initialization note: {e}")
 
 class SearchRequest(BaseModel):
     query: str
     top_k: Optional[int] = 3
+
+class AskRequest(BaseModel):
+    question: str
 
 class CorridorRequest(BaseModel):
     points: List[List[float]]
 
 @app.get("/")
 def read_root():
+    chunk_count = 0
+    if rag_module and rag_module.chroma_collection:
+        try:
+            chunk_count = rag_module.chroma_collection.count()
+        except Exception:
+            chunk_count = 0
     return {
         "status": "online",
         "team": "Team NERO",
         "sih_ps": "26019 - Land Governance Policy Research & Simulation Platform",
-        "feature_1_rag": "Active",
+        "feature_1_rag": "Active" if rag_module else "Offline",
         "feature_2_gis": "Active",
-        "docs_indexed": len(rag_engine.chunks)
+        "docs_indexed": chunk_count
     }
 
+@app.get("/health")
 @app.get("/api/health")
 def health_check():
-    return {"status": "ok", "indexed_chunks": len(rag_engine.chunks), "gis_status": "ready"}
+    chunk_count = 0
+    if rag_module and rag_module.chroma_collection:
+        try:
+            chunk_count = rag_module.chroma_collection.count()
+        except Exception:
+            chunk_count = 0
+    return {
+        "status": "ok",
+        "indexed_chunks": chunk_count,
+        "gis_status": "ready",
+        "rag_status": "ready" if rag_module else "unavailable"
+    }
 
 # Feature 1: RAG Smart Search
 @app.post("/api/search")
 def search_documents(req: SearchRequest):
     """Feature 1: Smart Document Search (RAG Engine API)"""
-    results = rag_engine.search(query=req.query, top_k=req.top_k or 3)
-    return results
+    if rag_module:
+        return rag_module.search_debug(q=req.query)
+    return {"results": [], "message": "RAG module unavailable"}
 
+@app.get("/search")
 @app.get("/api/search")
 def search_documents_get(q: str = Query(..., description="Natural language search query")):
-    """GET endpoint for easy testing of RAG search."""
-    results = rag_engine.search(query=q, top_k=3)
-    return results
+    """GET endpoint for testing of RAG search."""
+    if rag_module:
+        return rag_module.search_debug(q=q)
+    return {"results": [], "message": "RAG module unavailable"}
+
+@app.post("/ask")
+def ask_rag_endpoint(req: AskRequest):
+    """Main RAG Endpoint: Connects DocumentSearch component directly to rag_app with ChromaDB and Gemini"""
+    if rag_module:
+        return rag_module.ask_question(rag_module.AskRequest(question=req.question))
+    return {
+        "question": req.question,
+        "answer": "RAG module is not loaded. Please verify sentence-transformers and chromadb.",
+        "sources": []
+    }
 
 # Feature 2: GIS Land Intelligence & Correlation Platform Endpoints
 @app.get("/api/gis/national-summary")

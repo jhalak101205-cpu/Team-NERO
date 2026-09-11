@@ -99,12 +99,17 @@ git clone https://github.com/jhalak101205-cpu/Team-NERO.git
 cd Team-NERO
 ```
 
-### 2. Backend Setup
+### 2. Backend Setup (GIS & AI RAG Unified)
 ```bash
 cd backend
 python -m venv venv
 source venv/bin/activate    # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
+
+# (Optional) To index new policy documents into ChromaDB:
+# python ../rag_app/ingest.py
+
+# Launch the unified API server (serves both GIS & RAG):
 uvicorn main:app --reload --port 8000
 ```
 
@@ -115,7 +120,7 @@ npm install
 npm run dev
 ```
 
-Visit `http://localhost:5173` to explore the dashboard.
+Visit `http://localhost:5173` (or the port Vite outputs) to explore the dashboard.
 
 ---
 
