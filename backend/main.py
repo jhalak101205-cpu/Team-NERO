@@ -20,6 +20,7 @@ except Exception as rag_err:
     rag_module = None
 
 from services.gis_service import gis_service
+from services.simulator_service import simulator_service
 
 app = FastAPI(
     title="Team NERO - Land Governance Policy & Simulation API",
@@ -58,6 +59,14 @@ class ChatRequest(BaseModel):
 
 class CorridorRequest(BaseModel):
     points: List[List[float]]
+
+class SimulatorRequest(BaseModel):
+    ulpin_pct: Optional[float] = 68.2
+    vector_pct: Optional[float] = 76.5
+    dbt_days: Optional[float] = 90.0
+    sia_days: Optional[float] = 60.0
+    adr_rate: Optional[float] = 20.0
+    govt_swap_pct: Optional[float] = 10.0
 
 @app.get("/")
 def read_root():
@@ -121,6 +130,7 @@ def ask_rag_endpoint(req: AskRequest):
 
 # Feature 3: Grounded AI Chatbot Endpoint
 @app.post("/chat")
+@app.post("/api/chat")
 def chat_endpoint(req: ChatRequest):
     """Feature 3: Grounded AI Chatbot Endpoint connected directly to rag_app fixed KPI table"""
     if rag_module and hasattr(rag_module, "chat_endpoint"):
@@ -177,6 +187,24 @@ def get_gis_geojson(
 def post_corridor_analysis(req: CorridorRequest):
     """Analyze proposed highway/road corridor route for government land bank vs litigation conflict"""
     return gis_service.analyze_corridor(points=req.points)
+
+# Feature 4: Policy & Acquisition Simulator Endpoints (Dual Engine)
+@app.post("/api/simulator/predict")
+def post_simulator_predict(req: SimulatorRequest):
+    """Predict administrative land governance and socio-economic citizen impact metrics"""
+    return simulator_service.predict(
+        ulpin_pct=req.ulpin_pct,
+        vector_pct=req.vector_pct,
+        dbt_days=req.dbt_days,
+        sia_days=req.sia_days,
+        adr_rate=req.adr_rate,
+        govt_swap_pct=req.govt_swap_pct
+    )
+
+@app.get("/api/simulator/scenarios")
+def get_simulator_scenarios():
+    """List pre-configured scenario templates for quick simulation"""
+    return simulator_service.get_scenarios()
 
 if __name__ == "__main__":
     import uvicorn

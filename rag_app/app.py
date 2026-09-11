@@ -208,14 +208,14 @@ def ask_question(request: AskRequest):
 
         prompt = f"{system_instruction}\n\nCONTEXT EXCERPTS:\n{context_str}\n\nUSER QUESTION: {question}\n\nANSWER:"
 
-        # Call Gemini model (gemini-3.6-flash with fallback to gemini-2.5-flash / gemini-flash-latest)
+        # Call Gemini model (gemini-2.0-flash with fallback to gemini-1.5-flash / gemini-flash-latest)
         try:
-            model = genai.GenerativeModel("gemini-3.6-flash")
+            model = genai.GenerativeModel("gemini-2.0-flash")
             response = model.generate_content(prompt)
         except Exception as model_err:
-            print(f"⚠️ gemini-3.6-flash fallback: {model_err}")
+            print(f"⚠️ gemini-2.0-flash fallback: {model_err}")
             try:
-                model = genai.GenerativeModel("gemini-2.5-flash")
+                model = genai.GenerativeModel("gemini-1.5-flash")
                 response = model.generate_content(prompt)
             except Exception:
                 model = genai.GenerativeModel("gemini-flash-latest")
@@ -286,12 +286,12 @@ def chat_endpoint(request: ChatRequest):
     try:
         genai.configure(api_key=gemini_api_key)
         try:
-            model = genai.GenerativeModel("gemini-3.6-flash")
+            model = genai.GenerativeModel("gemini-2.0-flash")
             response = model.generate_content(prompt)
         except Exception as model_err:
-            print(f"⚠️ gemini-3.6-flash fallback in /chat: {model_err}")
+            print(f"⚠️ gemini-2.0-flash fallback in /chat: {model_err}")
             try:
-                model = genai.GenerativeModel("gemini-2.5-flash")
+                model = genai.GenerativeModel("gemini-1.5-flash")
                 response = model.generate_content(prompt)
             except Exception:
                 model = genai.GenerativeModel("gemini-flash-latest")
