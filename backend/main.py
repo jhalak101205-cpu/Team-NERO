@@ -53,6 +53,9 @@ class SearchRequest(BaseModel):
 class AskRequest(BaseModel):
     question: str
 
+class ChatRequest(BaseModel):
+    question: str
+
 class CorridorRequest(BaseModel):
     points: List[List[float]]
 
@@ -114,6 +117,18 @@ def ask_rag_endpoint(req: AskRequest):
         "question": req.question,
         "answer": "RAG module is not loaded. Please verify sentence-transformers and chromadb.",
         "sources": []
+    }
+
+# Feature 3: Grounded AI Chatbot Endpoint
+@app.post("/chat")
+def chat_endpoint(req: ChatRequest):
+    """Feature 3: Grounded AI Chatbot Endpoint connected directly to rag_app fixed KPI table"""
+    if rag_module and hasattr(rag_module, "chat_endpoint"):
+        return rag_module.chat_endpoint(rag_module.ChatRequest(question=req.question))
+    return {
+        "question": req.question,
+        "answer": "Chat module is not loaded.",
+        "grounded_in": "fixed_kpi_table"
     }
 
 # Feature 2: GIS Land Intelligence & Correlation Platform Endpoints

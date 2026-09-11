@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Navbar from './components/Navbar';
 import DocumentSearch from './components/DocumentSearch';
 import GISCorrelationMap from './components/GISCorrelationMap';
+import ChatBot from './components/ChatBot';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('map');
@@ -15,14 +16,7 @@ export default function App() {
 
         {activeTab === 'map' && <GISCorrelationMap />}
 
-        {activeTab === 'chatbot' && (
-          <div style={{ maxWidth: '1200px', margin: '3rem auto', padding: '0 1.5rem', textAlign: 'center' }}>
-            <div className="glass-panel" style={{ padding: '3rem' }}>
-              <h2 style={{ fontSize: '1.8rem', color: '#f8fafc', marginBottom: '1rem' }}>Feature 3: Grounded AI Legal & Land Advisory Chatbot</h2>
-              <p style={{ color: 'var(--text-muted)' }}>Ready for implementation</p>
-            </div>
-          </div>
-        )}
+        {activeTab === 'chatbot' && <ChatBot />}
 
         {activeTab === 'simulator' && (
           <div style={{ maxWidth: '1200px', margin: '3rem auto', padding: '0 1.5rem', textAlign: 'center' }}>

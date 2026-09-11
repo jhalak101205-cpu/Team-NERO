@@ -1,0 +1,46 @@
+{
+  "kpi_definitions": {
+    "digitization_pct": "Percentage of textual Records of Rights (RoRs) and cadastral maps converted into verified digital databases.",
+    "active_disputes": "Total count of active unresolved land ownership, boundary, or inheritance disputes pending in revenue or civil courts.",
+    "avg_resolution_time_years": "Average duration in years required to adjudicate and formally resolve a disputed land title case.",
+    "ulpin_coverage_pct": "Percentage of total land parcels assigned a unique 14-digit Unique Land Parcel Identification Number (Bhu-Aadhar).",
+    "acquisition_delay_rate_pct": "Percentage of major infrastructure land acquisition projects delayed past statutory SLAs due to litigation or compensation delays."
+  },
+  "states": {
+    "Punjab": {
+      "digitization_pct": 98.6,
+      "active_disputes": 28450,
+      "avg_resolution_time_years": 4.8,
+      "ulpin_coverage_pct": 89.4,
+      "acquisition_delay_rate_pct": 14.2
+    },
+    "Karnataka": {
+      "digitization_pct": 96.2,
+      "active_disputes": 41200,
+      "avg_resolution_time_years": 5.9,
+      "ulpin_coverage_pct": 84.7,
+      "acquisition_delay_rate_pct": 19.5
+    },
+    "Tamil Nadu": {
+      "digitization_pct": 98.4,
+      "active_disputes": 31000,
+      "avg_resolution_time_years": 4.2,
+      "ulpin_coverage_pct": 88.5,
+      "acquisition_delay_rate_pct": 16.0
+    },
+    "Bihar": {
+      "digitization_pct": 74.8,
+      "active_disputes": 95600,
+      "avg_resolution_time_years": 11.6,
+      "ulpin_coverage_pct": 42.3,
+      "acquisition_delay_rate_pct": 43.7
+    },
+    "Rajasthan": {
+      "digitization_pct": 88.5,
+      "active_disputes": 56300,
+      "avg_resolution_time_years": 7.4,
+      "ulpin_coverage_pct": 68.1,
+      "acquisition_delay_rate_pct": 26.8
+    }
+  }
+}
