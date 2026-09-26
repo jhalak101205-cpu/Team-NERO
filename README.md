@@ -1,6 +1,9 @@
 # 🇮🇳 BhumiNexus
 ### National Digital Platform for Research, Policy Innovation & Evidence-Based Land Governance
 
+Collaborative Space - https://github.com/padmasri-web/collaborativeSpace-
+DashBoard - https://github.com/jhalak101205-cpu/SIH_Frontend
+
 [![Smart India Hackathon 2026](https://img.shields.io/badge/SIH-2026-orange.svg)](https://sih.gov.in/)
 [![Problem Statement](https://img.shields.io/badge/Problem%20Statement-SIH26019-blue.svg)](https://sih.gov.in/)
 [![Theme](https://img.shields.io/badge/Theme-Smart%20Automation-brightgreen.svg)](https://sih.gov.in/)
