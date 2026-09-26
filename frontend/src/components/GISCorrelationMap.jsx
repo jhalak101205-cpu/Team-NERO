@@ -47,6 +47,7 @@ import {
   Database,
   Check
 } from 'lucide-react';
+import { API_BASE_URL } from '../apiConfig';
 
 // Fix Leaflet default icon issues in bundled react apps
 delete L.Icon.Default.prototype._getIconUrl;
@@ -123,7 +124,7 @@ export default function GISCorrelationMap() {
   const handleSyncData = async () => {
     setIsSyncing(true);
     try {
-      const res = await axios.post('http://localhost:8000/api/gis/sync');
+      const res = await axios.post(`${API_BASE_URL}/api/gis/sync`);
       setSyncStatus(res.data?.message || 'Pipeline Synced: 44 records verified');
       
       // Refresh current trends and summary with dynamic parameters
@@ -133,8 +134,8 @@ export default function GISCorrelationMap() {
       const qStr = query ? `?${query}` : '';
       
       const [trendsRes, summaryRes] = await Promise.all([
-        axios.get(`http://localhost:8000/api/gis/temporal-trends${qStr}`).catch(() => null),
-        axios.get(`http://localhost:8000/api/gis/summary${qStr}`).catch(() => null)
+        axios.get(`${API_BASE_URL}/api/gis/temporal-trends${qStr}`).catch(() => null),
+        axios.get(`${API_BASE_URL}/api/gis/summary${qStr}`).catch(() => null)
       ]);
       if (trendsRes?.data) setTemporalTrends(trendsRes.data);
       if (summaryRes?.data) setNationalSummary(summaryRes.data);
@@ -158,9 +159,9 @@ export default function GISCorrelationMap() {
     try {
       setLoading(true);
       const [statesRes, summaryRes, trendsRes] = await Promise.all([
-        axios.get('http://localhost:8000/api/gis/states').catch(() => ({ data: [] })),
-        axios.get('http://localhost:8000/api/gis/summary').catch(() => ({ data: null })),
-        axios.get('http://localhost:8000/api/gis/temporal-trends').catch(() => ({ data: null }))
+        axios.get(`${API_BASE_URL}/api/gis/states`).catch(() => ({ data: [] })),
+        axios.get(`${API_BASE_URL}/api/gis/summary`).catch(() => ({ data: null })),
+        axios.get(`${API_BASE_URL}/api/gis/temporal-trends`).catch(() => ({ data: null }))
       ]);
 
       if (statesRes.data && statesRes.data.length > 0) {
@@ -188,7 +189,7 @@ export default function GISCorrelationMap() {
     setCorridorResult(null);
 
     // Fetch dynamic LULC breakdown for selected state
-    const summaryRes = await axios.get(`http://localhost:8000/api/gis/summary?state=${stateId}`).catch(() => ({ data: null }));
+    const summaryRes = await axios.get(`${API_BASE_URL}/api/gis/summary?state=${stateId}`).catch(() => ({ data: null }));
     if (summaryRes.data) {
       setNationalSummary(summaryRes.data);
     }
@@ -197,7 +198,7 @@ export default function GISCorrelationMap() {
       setMapCenter([22.5937, 78.9629]);
       setMapZoom(5);
       setDistricts([]);
-      const trendsRes = await axios.get('http://localhost:8000/api/gis/temporal-trends').catch(() => ({ data: null }));
+      const trendsRes = await axios.get(`${API_BASE_URL}/api/gis/temporal-trends`).catch(() => ({ data: null }));
       if (trendsRes.data) setTemporalTrends(trendsRes.data);
     } else {
       const stateObj = states.find(s => s.id === stateId);
@@ -205,7 +206,7 @@ export default function GISCorrelationMap() {
         setMapCenter(stateObj.center);
         setMapZoom(stateObj.zoom || 7);
         setDistricts(stateObj.districts || []);
-        const trendsRes = await axios.get(`http://localhost:8000/api/gis/temporal-trends?state=${stateId}`).catch(() => ({ data: null }));
+        const trendsRes = await axios.get(`${API_BASE_URL}/api/gis/temporal-trends?state=${stateId}`).catch(() => ({ data: null }));
         if (trendsRes.data) setTemporalTrends(trendsRes.data);
       }
     }
@@ -220,8 +221,8 @@ export default function GISCorrelationMap() {
     // Fetch dynamic LULC breakdown for selected district
     const distParam = districtId === 'all' ? '' : `&district=${districtId}`;
     const [summaryRes, trendsRes] = await Promise.all([
-      axios.get(`http://localhost:8000/api/gis/summary?state=${selectedState}${distParam}`).catch(() => ({ data: null })),
-      axios.get(`http://localhost:8000/api/gis/temporal-trends?state=${selectedState}${distParam}`).catch(() => ({ data: null }))
+      axios.get(`${API_BASE_URL}/api/gis/summary?state=${selectedState}${distParam}`).catch(() => ({ data: null })),
+      axios.get(`${API_BASE_URL}/api/gis/temporal-trends?state=${selectedState}${distParam}`).catch(() => ({ data: null }))
     ]);
     if (summaryRes.data) {
       setNationalSummary(summaryRes.data);
@@ -253,7 +254,7 @@ export default function GISCorrelationMap() {
     if (newPoints.length >= 2) {
       setPlanningLoading(true);
       try {
-        const res = await axios.post('http://localhost:8000/api/gis/corridor-analysis', {
+        const res = await axios.post(`${API_BASE_URL}/api/gis/corridor-analysis`, {
           points: newPoints
         });
         setCorridorResult(res.data);

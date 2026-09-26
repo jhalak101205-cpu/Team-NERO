@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { Bot, X, Send, Sparkles, Maximize2, ShieldCheck, RefreshCw } from 'lucide-react';
+import { API_BASE_URL } from '../apiConfig';
 
 export default function AskBhumiAIFloating({ onExpandToFull }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -44,7 +45,7 @@ export default function AskBhumiAIFloating({ onExpandToFull }) {
     setLoading(true);
 
     try {
-      const res = await axios.post('http://localhost:8000/chat', {
+      const res = await axios.post(`${API_BASE_URL}/chat`, {
         question: query
       });
 

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { Bot, Send, User, ShieldCheck, AlertCircle, Sparkles, RefreshCw, HelpCircle } from 'lucide-react';
+import { API_BASE_URL } from '../apiConfig';
 
 const SUGGESTED_QUESTIONS = [
   "What is the digitization percentage and active disputes in Punjab?",
@@ -51,7 +52,7 @@ export default function ChatBot() {
     setLoading(true);
 
     try {
-      const res = await axios.post('http://localhost:8000/chat', {
+      const res = await axios.post(`${API_BASE_URL}/chat`, {
         question: queryText
       });
 
@@ -67,7 +68,7 @@ export default function ChatBot() {
     } catch (err) {
       console.error("Chat error:", err);
       const detail = err.response?.data?.detail || err.message || "Failed to contact backend";
-      setErrorMessage(`Backend Error: ${detail}. Please ensure http://localhost:8000 is reachable.`);
+      setErrorMessage(`Backend Error: ${detail}. Please ensure ${API_BASE_URL} is reachable.`);
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { Search, Sparkles, FileText, CheckCircle, AlertCircle, ArrowRight, Loader2 } from 'lucide-react';
+import { API_BASE_URL } from '../apiConfig';
 
 export default function DocumentSearch() {
   const [question, setQuestion] = useState('');
@@ -25,7 +26,7 @@ export default function DocumentSearch() {
 
     try {
       // Send real POST request to FastAPI backend endpoint
-      const response = await axios.post('http://localhost:8000/ask', {
+      const response = await axios.post(`${API_BASE_URL}/ask`, {
         question: q
       }, {
         headers: { 'Content-Type': 'application/json' },
@@ -37,7 +38,7 @@ export default function DocumentSearch() {
       }
     } catch (err) {
       console.error("RAG Backend API error:", err);
-      let errorMsg = "Unable to connect to backend server at http://localhost:8000. Ensure 'python rag_app/app.py' is running.";
+      let errorMsg = `Unable to connect to backend server at ${API_BASE_URL}. Ensure the backend is running.`;
       if (err.response && err.response.data && err.response.data.detail) {
         errorMsg = err.response.data.detail;
       }

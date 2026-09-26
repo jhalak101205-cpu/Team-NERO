@@ -48,6 +48,7 @@ import {
   Compass,
   Settings
 } from 'lucide-react';
+import { API_BASE_URL } from '../apiConfig';
 
 // Fix Leaflet default icon URLs in React
 delete L.Icon.Default.prototype._getIconUrl;
@@ -181,8 +182,8 @@ export default function PolicySimulator() {
     try {
       setLoading(true);
       const [scenariosRes, domainsRes] = await Promise.all([
-        axios.get('http://localhost:8000/api/simulator/scenarios').catch(() => ({ data: [] })),
-        axios.get('http://localhost:8000/api/simulator/domains').catch(() => ({ data: [] }))
+        axios.get(`${API_BASE_URL}/api/simulator/scenarios`).catch(() => ({ data: [] })),
+        axios.get(`${API_BASE_URL}/api/simulator/domains`).catch(() => ({ data: [] }))
       ]);
 
       if (scenariosRes.data) setScenarios(scenariosRes.data);
@@ -216,7 +217,7 @@ export default function PolicySimulator() {
         end_lng: parseFloat(eLng)
       };
 
-      const res = await axios.post('http://localhost:8000/api/simulator/predict', payload);
+      const res = await axios.post(`${API_BASE_URL}/api/simulator/predict`, payload);
       if (res.data) setSimResult(res.data);
     } catch (err) {
       console.error("Simulation API error:", err);
