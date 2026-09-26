@@ -58,7 +58,7 @@ export default function DocumentSearch() {
           <h2 style={{ fontSize: '1.6rem', color: '#f8fafc' }}>RAG Semantic Document Search</h2>
         </div>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '850px', lineHeight: 1.6 }}>
-          Powered by ChromaDB vector storage, local SentenceTransformers embeddings, and Google Gemini API (gemini-2.0-flash). Answers are strictly grounded in indexed land policy documents.
+          Powered by ChromaDB vector storage, local SentenceTransformers embeddings, and Google Gemini API (gemini-3.5-flash). Answers are strictly grounded in indexed land policy documents.
         </p>
 
         {/* Input & Semantic Search Button */}

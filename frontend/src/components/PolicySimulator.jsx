@@ -349,7 +349,7 @@ export default function PolicySimulator() {
                 </span>
               </div>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.2rem' }}>
-                Predictive Governance & Citizen Impact Engine for DoLR & Ministry of Rural Development (SIH 2026 PS 26019)
+                Predictive Governance & Citizen Impact Engine for DoLR & Ministry of Rural Development
               </p>
             </div>
           </div>

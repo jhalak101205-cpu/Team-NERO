@@ -67,6 +67,54 @@ class SimulatorService:
             }
         }
 
+        # Preset Quick Scenarios for Simulation Sandboxing
+        self.preset_scenarios = {
+            "max_digitization": {
+                "id": "max_digitization",
+                "title": "🚀 100% ULPIN & Vector Saturation",
+                "description": "Full geo-referenced cadastral vector maps and Bhu-Aadhar parcel saturation.",
+                "ulpin_pct": 100.0,
+                "vector_pct": 100.0,
+                "dbt_days": 30.0,
+                "sia_days": 30.0,
+                "adr_rate": 60.0,
+                "govt_swap_pct": 25.0
+            },
+            "rapid_disbursement": {
+                "id": "rapid_disbursement",
+                "title": "⚡ Fast-Track Compensation (DBT)",
+                "description": "Direct benefit transfer to landholder accounts within 14 days of statutory award.",
+                "ulpin_pct": 85.0,
+                "vector_pct": 85.0,
+                "dbt_days": 14.0,
+                "sia_days": 45.0,
+                "adr_rate": 45.0,
+                "govt_swap_pct": 15.0
+            },
+            "adr_conciliation": {
+                "id": "adr_conciliation",
+                "title": "⚖️ ADR & Pre-Litigation Benches",
+                "description": "Mandatory alternative dispute resolution resolving 75% of title conflicts outside court.",
+                "ulpin_pct": 80.0,
+                "vector_pct": 80.0,
+                "dbt_days": 60.0,
+                "sia_days": 45.0,
+                "adr_rate": 75.0,
+                "govt_swap_pct": 20.0
+            },
+            "govt_land_bank": {
+                "id": "govt_land_bank",
+                "title": "🏛️ Maximum Public Land Bank Substitution",
+                "description": "Substitute 40% of acquisition alignment using available state revenue land banks.",
+                "ulpin_pct": 75.0,
+                "vector_pct": 78.0,
+                "dbt_days": 60.0,
+                "sia_days": 60.0,
+                "adr_rate": 35.0,
+                "govt_swap_pct": 40.0
+            }
+        }
+
         # Comprehensive Database of Indian Cities & Corridor Hubs
         self.city_db = {
             "moradabad": (28.8386, 78.7733),
