@@ -24,4 +24,15 @@ else
     echo "ℹ️ Frontend was not running on port 5173."
 fi
 
+# Stop Collaboration Workspace on Port 3001
+COLLAB_PID=$(lsof -ti :3001 2>/dev/null)
+if [ -n "$COLLAB_PID" ]; then
+    echo "Stopping Collaborative Workspace process (PID $COLLAB_PID)..."
+    kill -9 $COLLAB_PID 2>/dev/null
+    echo "✅ Collaborative Workspace stopped."
+else
+    echo "ℹ️ Collaborative Workspace was not running on port 3001."
+fi
+
 echo "All BhumiNexus servers have been stopped."
+
